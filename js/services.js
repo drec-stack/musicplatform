@@ -1,45 +1,19 @@
 class ServicesManager {
     constructor() {
         this.services = {
-            spotify: {
-                id: 'spotify',
-                name: 'Spotify',
-                color: '#1DB954',
-                authType: 'oauth',
-                connected: false
-            },
-            youtube: {
-                id: 'youtube',
-                name: 'YouTube Music',
-                color: '#FF0000',
-                authType: 'api_key',
-                connected: false
-            },
-            soundcloud: {
-                id: 'soundcloud',
-                name: 'SoundCloud',
-                color: '#FF5500',
-                authType: 'api_key',
-                connected: false
-            },
-            deezer: {
-                id: 'deezer',
-                name: 'Deezer',
-                color: '#00C7F2',
-                authType: 'none',
-                connected: true
-            }
+            spotify: { id: 'spotify', name: 'Spotify', color: '#1DB954', authType: 'oauth', connected: false },
+            youtube: { id: 'youtube', name: 'YouTube Music', color: '#FF0000', authType: 'api_key', connected: false },
+            soundcloud: { id: 'soundcloud', name: 'SoundCloud', color: '#FF5500', authType: 'api_key', connected: false },
+            deezer: { id: 'deezer', name: 'Deezer', color: '#00C7F2', authType: 'none', connected: true }
         };
         this.loadState();
     }
 
     loadState() {
         const spotifyAuth = storage.get('spotify_auth');
-        if (spotifyAuth && spotifyAuth.accessToken) {
-            if (spotifyAuth.expiresAt > Date.now()) {
-                this.services.spotify.connected = true;
-                this.services.spotify.accessToken = spotifyAuth.accessToken;
-            }
+        if (spotifyAuth && spotifyAuth.accessToken && spotifyAuth.expiresAt > Date.now()) {
+            this.services.spotify.connected = true;
+            this.services.spotify.accessToken = spotifyAuth.accessToken;
         }
 
         const youtubeConfig = storage.get('youtube_config');
@@ -65,35 +39,18 @@ class ServicesManager {
 
     getActiveServiceTokens() {
         const tokens = {};
-        if (this.services.spotify.connected) {
-            tokens.spotify = this.services.spotify.accessToken;
-        }
-        if (this.services.youtube.connected) {
-            tokens.youtube = this.services.youtube.apiKey;
-        }
-        if (this.services.soundcloud.connected) {
-            tokens.soundcloud = this.services.soundcloud.clientId;
-        }
-        if (this.services.deezer.connected) {
-            tokens.deezer = true;
-        }
+        if (this.services.spotify.connected) tokens.spotify = this.services.spotify.accessToken;
+        if (this.services.youtube.connected) tokens.youtube = this.services.youtube.apiKey;
+        if (this.services.soundcloud.connected) tokens.soundcloud = this.services.soundcloud.clientId;
+        if (this.services.deezer.connected) tokens.deezer = true;
         return tokens;
     }
 
     connectSpotify(clientId) {
         const redirectUri = window.location.origin + '/callback.html';
-        const scopes = [
-            'streaming',
-            'user-read-email',
-            'user-read-private',
-            'user-library-read',
-            'user-library-modify',
-            'playlist-read-private'
-        ].join(' ');
-        
+        const scopes = 'streaming user-read-email user-read-private user-library-read user-library-modify playlist-read-private';
         const state = this.generateState();
         storage.set('spotify_auth_state', state);
-
         const params = new URLSearchParams({
             client_id: clientId,
             response_type: 'token',
@@ -101,8 +58,7 @@ class ServicesManager {
             scope: scopes,
             state: state
         });
-
-        window.location.href = `https://accounts.spotify.com/authorize?${params.toString()}`;
+        window.location.href = 'https://accounts.spotify.com/authorize?' + params.toString();
     }
 
     checkSpotifyCallback() {
@@ -150,10 +106,12 @@ class ServicesManager {
     }
 
     generateState() {
-        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-        return Array.from({ length: 16 }, () => 
-            chars.charAt(Math.floor(Math.random() * chars.length))
-        ).join('');
+        var chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        var result = '';
+        for (var i = 0; i < 16; i++) {
+            result += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return result;
     }
 }
 
