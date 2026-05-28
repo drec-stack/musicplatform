@@ -1,103 +1,132 @@
-// js/storage.js
 class StorageManager {
     constructor() {
         this.prefix = 'musichub_';
-        this.cache = new Map();
-        this.init();
+        this.memoryCache = new Map();
+        this.available = this.checkAvailability();
+        this.loadAllToMemory();
     }
-    
-    init() {
-        // Проверяем доступность localStorage
+
+    checkAvailability() {
         try {
-            localStorage.setItem('test', 'test');
-            localStorage.removeItem('test');
-            this.available = true;
-        } catch(e) {
-            this.available = false;
-            console.warn('localStorage недоступен, используем память');
+            const test = '__storage_test__';
+            localStorage.setItem(test, test);
+            localStorage.removeItem(test);
+            return true;
+        } catch (e) {
+            return false;
         }
-        
-        // Загружаем кэш в память для быстрого доступа
-        this.loadCache();
     }
-    
-    loadCache() {
+
+    loadAllToMemory() {
         if (!this.available) return;
-        
         const keys = [
             'settings',
             'connected_services',
             'play_history',
             'favorites',
-            'queue'
+            'queue',
+            'spotify_auth',
+            'youtube_config',
+            'soundcloud_config'
         ];
-        
         keys.forEach(key => {
-            const data = localStorage.getItem(this.prefix + key);
-            if (data) {
+            const raw = localStorage.getItem(this.prefix + key);
+            if (raw) {
                 try {
-                    this.cache.set(key, JSON.parse(data));
-                } catch(e) {
-                    this.cache.set(key, null);
+                    this.memoryCache.set(key, JSON.parse(raw));
+                } catch (e) {
+                    this.memoryCache.set(key, null);
                 }
             }
         });
     }
-    
-    get(key) {
-        // Сначала проверяем кэш в памяти
-        if (this.cache.has(key)) {
-            return this.cache.get(key);
+
+    get(key, defaultValue = null) {
+        if (this.memoryCache.has(key)) {
+            return this.memoryCache.get(key);
         }
-        
-        // Затем localStorage
         if (this.available) {
-            const data = localStorage.getItem(this.prefix + key);
-            if (data) {
+            const raw = localStorage.getItem(this.prefix + key);
+            if (raw) {
                 try {
-                    const parsed = JSON.parse(data);
-                    this.cache.set(key, parsed);
+                    const parsed = JSON.parse(raw);
+                    this.memoryCache.set(key, parsed);
                     return parsed;
-                } catch(e) {
-                    return null;
+                } catch (e) {
+                    return defaultValue;
                 }
             }
         }
-        
-        return null;
+        return defaultValue;
     }
-    
+
     set(key, value) {
-        // Сохраняем в кэш памяти
-        this.cache.set(key, value);
-        
-        // Сохраняем в localStorage
+        this.memoryCache.set(key, value);
         if (this.available) {
             try {
                 localStorage.setItem(this.prefix + key, JSON.stringify(value));
-            } catch(e) {
-                console.error('Ошибка сохранения:', e);
-                // Очищаем старые данные если место закончилось
-                this.clearOldData();
+            } catch (e) {
+                this.clearOldHistory();
+                try {
+                    localStorage.setItem(this.prefix + key, JSON.stringify(value));
+                } catch (e2) {
+                    console.error('Storage full, cannot save:', key);
+                }
             }
         }
     }
-    
+
     remove(key) {
-        this.cache.delete(key);
+        this.memoryCache.delete(key);
         if (this.available) {
             localStorage.removeItem(this.prefix + key);
         }
     }
-    
-    clearOldData() {
-        // Удаляем историю прослушиваний старше 30 дней
-        const history = this.get('play_history') || [];
-        const monthAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
-        const fresh = history.filter(item => item.timestamp > monthAgo);
+
+    clearOldHistory() {
+        const history = this.get('play_history', []);
+        const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+        const fresh = history.filter(item => item.timestamp > thirtyDaysAgo);
         this.set('play_history', fresh);
+    }
+
+    addToHistory(track) {
+        const history = this.get('play_history', []);
+        const entry = {
+            ...track,
+            timestamp: Date.now()
+        };
+        history.unshift(entry);
+        if (history.length > 500) {
+            history.length = 500;
+        }
+        this.set('play_history', history);
+    }
+
+    addToFavorites(track) {
+        const favorites = this.get('favorites', []);
+        const exists = favorites.find(f => f.id === track.id && f.source === track.source);
+        if (!exists) {
+            favorites.unshift({
+                ...track,
+                addedAt: Date.now()
+            });
+            this.set('favorites', favorites);
+            return true;
+        }
+        return false;
+    }
+
+    removeFromFavorites(trackId, source) {
+        let favorites = this.get('favorites', []);
+        favorites = favorites.filter(f => !(f.id === trackId && f.source === source));
+        this.set('favorites', favorites);
+    }
+
+    isFavorite(trackId, source) {
+        const favorites = this.get('favorites', []);
+        return favorites.some(f => f.id === trackId && f.source === source);
     }
 }
 
-// Глобальный экземпляр
 window.storage = new StorageManager();
