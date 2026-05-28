@@ -122,3 +122,47 @@ class LibraryManager {
     async getRecentTracks(limit) {
         var tracks = await db.getAllTracks();
         tracks.sort(function(a, b) { return b.dateAdded - a.dateAdded; });
+        return tracks.slice(0, limit || 50);
+    }
+
+    async getMostPlayed(limit) {
+        var tracks = await db.getAllTracks();
+        tracks.sort(function(a, b) { return (b.playCount || 0) - (a.playCount || 0); });
+        return tracks.slice(0, limit || 50);
+    }
+
+    async getDuplicates() {
+        var tracks = await db.getAllTracks();
+        var duplicates = [];
+        var seen = {};
+        for (var i = 0; i < tracks.length; i++) {
+            var key = (tracks[i].title || '').toLowerCase() + '|||' + (tracks[i].artist || '').toLowerCase();
+            if (seen[key]) {
+                duplicates.push({ original: seen[key], duplicate: tracks[i], key: key });
+            } else {
+                seen[key] = tracks[i];
+            }
+        }
+        return duplicates;
+    }
+
+    async removeDuplicates() {
+        var duplicates = await this.getDuplicates();
+        var removed = [];
+        for (var i = 0; i < duplicates.length; i++) {
+            await db.deleteTrack(duplicates[i].duplicate.id);
+            removed.push(duplicates[i].duplicate);
+        }
+        return removed;
+    }
+
+    async exportLibrary() {
+        return db.exportLibrary();
+    }
+
+    async getPlaylist(id) {
+        return db.getPlaylist(id);
+    }
+}
+
+window.library = new LibraryManager();
