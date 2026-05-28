@@ -238,4 +238,30 @@ class UploadManager {
 
     syncSafeToInt(value) {
         return (value & 0x7f) << 21 |
-              
+               (value & 0x7f00) << 7 |
+               (value & 0x7f0000) >> 7 |
+               (value & 0x7f000000) >> 21;
+    }
+
+    async fetchImageAsBlob(url) {
+        try {
+            const response = await fetch(url);
+            if (!response.ok) return null;
+            return await response.blob();
+        } catch {
+            return null;
+        }
+    }
+
+    async uploadFolder(files, onProgress) {
+        const audioFiles = Array.from(files).filter(file => {
+            const ext = '.' + file.name.split('.').pop().toLowerCase();
+            return this.allowedExtensions.includes(ext) || 
+                   this.allowedTypes.includes(file.type);
+        });
+
+        return this.uploadFiles(audioFiles, onProgress);
+    }
+}
+
+window.uploadManager = new UploadManager();
