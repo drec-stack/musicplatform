@@ -1,210 +1,159 @@
-// js/services.js
 class ServicesManager {
     constructor() {
-        this.services = new Map();
-        this.configs = {
+        this.services = {
             spotify: {
+                id: 'spotify',
                 name: 'Spotify',
-                icon: '🎵',
                 color: '#1DB954',
-                clientId: null, // Будет запрошен у пользователя
-                authUrl: 'https://accounts.spotify.com/authorize',
-                tokenUrl: 'https://accounts.spotify.com/api/token',
-                apiBase: 'https://api.spotify.com/v1',
-                scopes: [
-                    'streaming',
-                    'user-read-email',
-                    'user-read-private',
-                    'user-library-read',
-                    'user-library-modify',
-                    'playlist-read-private',
-                    'playlist-modify-public'
-                ]
+                authType: 'oauth',
+                connected: false
             },
             youtube: {
+                id: 'youtube',
                 name: 'YouTube Music',
-                icon: '▶️',
                 color: '#FF0000',
-                apiKey: null,
-                apiBase: 'https://www.googleapis.com/youtube/v3'
+                authType: 'api_key',
+                connected: false
             },
             soundcloud: {
+                id: 'soundcloud',
                 name: 'SoundCloud',
-                icon: '☁️',
                 color: '#FF5500',
-                clientId: null,
-                apiBase: 'https://api.soundcloud.com'
-            },
-            apple: {
-                name: 'Apple Music',
-                icon: '🍎',
-                color: '#FC3C44',
-                developerToken: null,
-                apiBase: 'https://api.music.apple.com/v1'
+                authType: 'api_key',
+                connected: false
             },
             deezer: {
+                id: 'deezer',
                 name: 'Deezer',
-                icon: '🎧',
                 color: '#00C7F2',
-                apiBase: 'https://api.deezer.com'
-            },
-            lastfm: {
-                name: 'Last.fm',
-                icon: '📻',
-                color: '#D51007',
-                apiKey: null,
-                apiBase: 'https://ws.audioscrobbler.com/2.0'
+                authType: 'none',
+                connected: true
             }
         };
-        
-        this.loadSavedServices();
+        this.loadState();
     }
-    
-    loadSavedServices() {
-        const saved = storage.get('connected_services') || {};
-        
-        Object.entries(saved).forEach(([name, config]) => {
-            if (this.configs[name]) {
-                this.services.set(name, {
-                    ...this.configs[name],
-                    ...config,
-                    connected: true
-                });
+
+    loadState() {
+        const spotifyAuth = storage.get('spotify_auth');
+        if (spotifyAuth && spotifyAuth.accessToken) {
+            if (spotifyAuth.expiresAt > Date.now()) {
+                this.services.spotify.connected = true;
+                this.services.spotify.accessToken = spotifyAuth.accessToken;
             }
-        });
-    }
-    
-    getService(name) {
-        return this.services.get(name) || this.configs[name];
-    }
-    
-    getAllServices() {
-        return Object.entries(this.configs).map(([id, config]) => ({
-            id,
-            ...config,
-            connected: this.services.has(id)
-        }));
-    }
-    
-    async connectService(serviceId, credentials) {
-        const config = this.configs[serviceId];
-        if (!config) throw new Error('Неизвестный сервис');
-        
-        switch(serviceId) {
-            case 'spotify':
-                return await this.connectSpotify(credentials);
-            case 'youtube':
-                return await this.connectYouTube(credentials);
-            case 'soundcloud':
-                return await this.connectSoundCloud(credentials);
-            default:
-                throw new Error('Подключение не реализовано');
+        }
+
+        const youtubeConfig = storage.get('youtube_config');
+        if (youtubeConfig && youtubeConfig.apiKey) {
+            this.services.youtube.connected = true;
+            this.services.youtube.apiKey = youtubeConfig.apiKey;
+        }
+
+        const soundcloudConfig = storage.get('soundcloud_config');
+        if (soundcloudConfig && soundcloudConfig.clientId) {
+            this.services.soundcloud.connected = true;
+            this.services.soundcloud.clientId = soundcloudConfig.clientId;
         }
     }
-    
-    async connectSpotify({ clientId, clientSecret }) {
-        // Сохраняем clientId
-        const config = { ...this.configs.spotify, clientId };
-        
-        // Перенаправляем на авторизацию Spotify
+
+    getAll() {
+        return Object.values(this.services);
+    }
+
+    getConnected() {
+        return Object.values(this.services).filter(s => s.connected);
+    }
+
+    getActiveServiceTokens() {
+        const tokens = {};
+        if (this.services.spotify.connected) {
+            tokens.spotify = this.services.spotify.accessToken;
+        }
+        if (this.services.youtube.connected) {
+            tokens.youtube = this.services.youtube.apiKey;
+        }
+        if (this.services.soundcloud.connected) {
+            tokens.soundcloud = this.services.soundcloud.clientId;
+        }
+        if (this.services.deezer.connected) {
+            tokens.deezer = true;
+        }
+        return tokens;
+    }
+
+    connectSpotify(clientId) {
         const redirectUri = window.location.origin + '/callback.html';
-        const state = this.generateRandomString(16);
+        const scopes = [
+            'streaming',
+            'user-read-email',
+            'user-read-private',
+            'user-library-read',
+            'user-library-modify',
+            'playlist-read-private'
+        ].join(' ');
         
-        // Сохраняем state для проверки
+        const state = this.generateState();
         storage.set('spotify_auth_state', state);
-        
+
         const params = new URLSearchParams({
-            response_type: 'token',
             client_id: clientId,
-            scope: config.scopes.join(' '),
+            response_type: 'token',
             redirect_uri: redirectUri,
+            scope: scopes,
             state: state
         });
-        
-        window.location.href = `${config.authUrl}?${params.toString()}`;
-        
-        return { success: false, redirect: true };
+
+        window.location.href = `https://accounts.spotify.com/authorize?${params.toString()}`;
     }
-    
-    async connectYouTube({ apiKey }) {
-        // Проверяем валидность API ключа
-        try {
-            const response = await fetch(
-                `${this.configs.youtube.apiBase}/search?part=snippet&q=test&key=${apiKey}`
-            );
-            
-            if (!response.ok) throw new Error('Неверный API ключ');
-            
-            this.saveServiceConnection('youtube', { apiKey });
-            return { success: true };
-        } catch(e) {
-            throw new Error('Ошибка подключения YouTube: ' + e.message);
+
+    checkSpotifyCallback() {
+        const auth = storage.get('spotify_auth');
+        if (auth && auth.accessToken && auth.expiresAt > Date.now()) {
+            this.services.spotify.connected = true;
+            this.services.spotify.accessToken = auth.accessToken;
+            return true;
+        }
+        return false;
+    }
+
+    connectYouTube(apiKey) {
+        storage.set('youtube_config', { apiKey });
+        this.services.youtube.connected = true;
+        this.services.youtube.apiKey = apiKey;
+        return true;
+    }
+
+    connectSoundCloud(clientId) {
+        storage.set('soundcloud_config', { clientId });
+        this.services.soundcloud.connected = true;
+        this.services.soundcloud.clientId = clientId;
+        return true;
+    }
+
+    disconnect(serviceId) {
+        switch (serviceId) {
+            case 'spotify':
+                storage.remove('spotify_auth');
+                this.services.spotify.connected = false;
+                delete this.services.spotify.accessToken;
+                break;
+            case 'youtube':
+                storage.remove('youtube_config');
+                this.services.youtube.connected = false;
+                delete this.services.youtube.apiKey;
+                break;
+            case 'soundcloud':
+                storage.remove('soundcloud_config');
+                this.services.soundcloud.connected = false;
+                delete this.services.soundcloud.clientId;
+                break;
         }
     }
-    
-    async connectSoundCloud({ clientId }) {
-        // Сохраняем clientId
-        this.saveServiceConnection('soundcloud', { clientId });
-        return { success: true };
-    }
-    
-    saveServiceConnection(serviceId, config) {
-        const saved = storage.get('connected_services') || {};
-        saved[serviceId] = {
-            ...saved[serviceId],
-            ...config,
-            connectedAt: Date.now()
-        };
-        storage.set('connected_services', saved);
-        
-        this.services.set(serviceId, {
-            ...this.configs[serviceId],
-            ...config,
-            connected: true
-        });
-    }
-    
-    disconnectService(serviceId) {
-        const saved = storage.get('connected_services') || {};
-        delete saved[serviceId];
-        storage.set('connected_services', saved);
-        
-        this.services.delete(serviceId);
-    }
-    
-    generateRandomString(length) {
+
+    generateState() {
         const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-        return Array.from({ length }, () => 
+        return Array.from({ length: 16 }, () => 
             chars.charAt(Math.floor(Math.random() * chars.length))
         ).join('');
-    }
-    
-    // Обработка callback от OAuth
-    handleAuthCallback() {
-        const hash = window.location.hash.substring(1);
-        const params = new URLSearchParams(hash);
-        
-        const accessToken = params.get('access_token');
-        const state = params.get('state');
-        const savedState = storage.get('spotify_auth_state');
-        
-        if (state !== savedState) {
-            throw new Error('Ошибка безопасности: state не совпадает');
-        }
-        
-        if (accessToken) {
-            this.saveServiceConnection('spotify', {
-                accessToken,
-                expiresAt: Date.now() + (parseInt(params.get('expires_in')) * 1000)
-            });
-            
-            // Очищаем URL
-            window.location.hash = '';
-            
-            return { success: true, service: 'spotify' };
-        }
-        
-        return { success: false, error: 'Нет токена доступа' };
     }
 }
 
