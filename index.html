@@ -4,13 +4,24 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#0a0a0f">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <title>MusicHub</title>
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/player.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Критические стили на случай если CSS не загрузился */
+        body { margin: 0; padding: 0; background: #0a0a0f; color: #fff; font-family: Arial, sans-serif; }
+        #app { display: none; }
+        body.loaded #app { display: grid; }
+        #loader { display: flex; align-items: center; justify-content: center; height: 100vh; font-size: 18px; }
+        body.loaded #loader { display: none; }
+    </style>
 </head>
 <body>
+    <div id="loader">Загрузка MusicHub...</div>
+    
     <div id="app">
         <aside id="sidebar"></aside>
         <main id="main">
@@ -24,13 +35,31 @@
         <div id="modal-content" class="modal-content"></div>
     </div>
 
+    <script>
+    // Проверка поддержки IndexedDB
+    if (!window.indexedDB) {
+        document.getElementById('loader').innerHTML = 
+            '<div style="text-align:center;padding:40px;">' +
+            '<h2>Ваш браузер не поддерживает IndexedDB</h2>' +
+            '<p>Пожалуйста, используйте современный браузер: Chrome, Firefox, Safari, Edge</p>' +
+            '</div>';
+    }
+    </script>
+    
+    <script src="js/polyfills.js"></script>
     <script src="js/storage.js"></script>
-    <script src="js/api.js"></script>
+    <script src="js/database.js"></script>
     <script src="js/services.js"></script>
     <script src="js/player.js"></script>
-    <script src="js/search.js"></script>
     <script src="js/queue.js"></script>
+    <script src="js/library.js"></script>
+    <script src="js/upload.js"></script>
+    <script src="js/importer.js"></script>
     <script src="js/ui.js"></script>
     <script src="js/app.js"></script>
+    
+    <script>
+    document.body.classList.add('loaded');
+    </script>
 </body>
 </html>
