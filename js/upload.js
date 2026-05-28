@@ -1,86 +1,25 @@
 (function() {
     'use strict';
-
-    function UploadManager() {
-        this.allowedTypes = ['audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/x-wav', 'audio/ogg', 'audio/flac', 'audio/aac', 'audio/mp4', 'audio/x-m4a'];
-    }
-
-    UploadManager.prototype.uploadFiles = function(files, onProgress) {
-        var results = { uploaded: [], failed: [], total: files.length, processed: 0 };
-        var self = this;
-        var chain = Promise.resolve();
-
-        for (var i = 0; i < files.length; i++) {
-            (function(file) {
-                chain = chain.then(function() {
-                    return self.processFile(file, onProgress).then(function(track) {
-                        results.uploaded.push(track);
-                        results.processed++;
-                    }).catch(function(error) {
-                        results.failed.push({ file: file.name, error: error.message });
-                        results.processed++;
-                    });
-                });
-            })(files[i]);
-        }
-
-        return chain.then(function() { return results; });
+    function UploadManager() { this.types=['audio/mpeg','audio/mp3','audio/wav','audio/x-wav','audio/ogg','audio/flac','audio/aac','audio/mp4','audio/x-m4a']; }
+    UploadManager.prototype.uploadFiles = function(files,cb) {
+        var r={uploaded:[],failed:[],total:files.length},s=this,ch=Promise.resolve();
+        for(var i=0;i<files.length;i++){(function(f){ch=ch.then(function(){return s.process(f,cb).then(function(t){r.uploaded.push(t);}).catch(function(e){r.failed.push({file:f.name,error:e.message});});});})(files[i]);}
+        return ch.then(function(){return r;});
     };
-
-    UploadManager.prototype.processFile = function(file, onProgress) {
-        var self = this;
-        return this.extractMetadata(file).then(function(metadata) {
-            var trackData = {
-                title: metadata.title || file.name.replace(/\.[^/.]+$/, ''),
-                artist: metadata.artist || 'Unknown Artist',
-                album: metadata.album || '',
-                duration: metadata.duration || 0,
-                source: 'local',
-                isLocal: true,
-                fileType: file.type,
-                fileSize: file.size
-            };
-            return db.addTrack(trackData).then(function(track) {
-                var promises = [db.saveAudioFile(track.id, file)];
-                if (metadata.picture) {
-                    var blob = new Blob([metadata.picture.data], { type: metadata.picture.format });
-                    promises.push(db.saveAlbumArt(track.id, blob));
-                }
-                return Promise.all(promises).then(function() { return track; });
-            });
+    UploadManager.prototype.process = function(f,cb) {
+        var s=this;
+        return this.meta(f).then(function(m){
+            var d={title:m.title||f.name.replace(/\.[^/.]+$/,''),artist:m.artist||'Unknown Artist',album:m.album||'',duration:m.duration||0,source:'local',isLocal:true,fileType:f.type,fileSize:f.size};
+            return db.addTrack(d).then(function(t){var ps=[db.saveAudioFile(t.id,f)];if(m.picture){var b=new Blob([m.picture.data],{type:m.picture.format});ps.push(db.saveAlbumArt(t.id,b));}return Promise.all(ps).then(function(){return t;});});
         });
     };
-
-    UploadManager.prototype.extractMetadata = function(file) {
-        return new Promise(function(resolve) {
-            var metadata = {};
-            var audio = new Audio();
-            var objectUrl = URL.createObjectURL(file);
-            audio.src = objectUrl;
-
-            var resolved = false;
-            var finish = function() {
-                if (!resolved) {
-                    resolved = true;
-                    URL.revokeObjectURL(objectUrl);
-                    resolve(metadata);
-                }
-            };
-
-            audio.addEventListener('loadedmetadata', function() {
-                metadata.duration = Math.round(audio.duration * 1000);
-                finish();
-            });
-
-            audio.addEventListener('error', function() {
-                finish();
-            });
-
-            setTimeout(function() {
-                finish();
-            }, 3000);
+    UploadManager.prototype.meta = function(f) {
+        return new Promise(function(res){
+            var m={},a=new Audio(),u=URL.createObjectURL(f);a.src=u;var done=false;
+            var fin=function(){if(!done){done=true;URL.revokeObjectURL(u);res(m);}};
+            a.addEventListener('loadedmetadata',function(){m.duration=Math.round(a.duration*1000);fin();});
+            a.addEventListener('error',fin); setTimeout(fin,3000);
         });
     };
-
     window.uploadManager = new UploadManager();
 })();
