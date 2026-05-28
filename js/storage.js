@@ -1,89 +1,43 @@
 (function() {
     'use strict';
-
     function StorageManager() {
         this.prefix = 'musichub_';
         this.cache = {};
         this.ok = false;
-        try {
-            var t = '__test__';
-            localStorage.setItem(t, t);
-            localStorage.removeItem(t);
-            this.ok = true;
-        } catch(e) {}
-        if (this.ok) this.loadCache();
+        try { var t='__t__'; localStorage.setItem(t,t); localStorage.removeItem(t); this.ok=true; } catch(e) {}
+        if (this.ok) this.loadAll();
     }
-
-    StorageManager.prototype.loadCache = function() {
-        var keys = ['settings', 'connected_services', 'play_history', 'favorites', 'queue', 'spotify_auth', 'spotify_auth_state', 'youtube_config', 'soundcloud_config', 'current_page'];
+    StorageManager.prototype.loadAll = function() {
+        var keys = ['settings','connected_services','play_history','favorites','queue','spotify_auth','spotify_auth_state','youtube_config','soundcloud_config','current_page'];
         var self = this;
-        for (var i = 0; i < keys.length; i++) {
-            (function(k) {
-                try {
-                    var raw = localStorage.getItem(self.prefix + k);
-                    if (raw) self.cache[k] = JSON.parse(raw);
-                } catch(e) {}
-            })(keys[i]);
+        for (var i=0;i<keys.length;i++) {
+            (function(k){ try { var r=localStorage.getItem(self.prefix+k); if(r) self.cache[k]=JSON.parse(r); } catch(e){} })(keys[i]);
         }
     };
-
-    StorageManager.prototype.get = function(key, def) {
-        if (this.cache.hasOwnProperty(key)) {
-            var v = this.cache[key];
-            return (v !== null && v !== undefined) ? v : (def !== undefined ? def : null);
-        }
-        if (this.ok) {
-            try {
-                var raw = localStorage.getItem(this.prefix + key);
-                if (raw) { var p = JSON.parse(raw); this.cache[key] = p; return p; }
-            } catch(e) {}
-        }
-        return def !== undefined ? def : null;
+    StorageManager.prototype.get = function(k,d) {
+        if (this.cache.hasOwnProperty(k)) { var v=this.cache[k]; return (v!==null&&v!==undefined)?v:(d!==undefined?d:null); }
+        if (this.ok) { try { var r=localStorage.getItem(this.prefix+k); if(r){ var p=JSON.parse(r); this.cache[k]=p; return p; } } catch(e){} }
+        return d!==undefined?d:null;
     };
-
-    StorageManager.prototype.set = function(key, value) {
-        this.cache[key] = value;
-        if (this.ok) {
-            try { localStorage.setItem(this.prefix + key, JSON.stringify(value)); } catch(e) {}
-        }
+    StorageManager.prototype.set = function(k,v) { this.cache[k]=v; if(this.ok){ try{localStorage.setItem(this.prefix+k,JSON.stringify(v));}catch(e){} } };
+    StorageManager.prototype.remove = function(k) { delete this.cache[k]; if(this.ok) localStorage.removeItem(this.prefix+k); };
+    StorageManager.prototype.addToHistory = function(t) {
+        var h=this.get('play_history',[]);
+        h.unshift({id:t.id,title:t.title,artist:t.artist,album:t.album||'',cover:t.cover||null,duration:t.duration||0,source:t.source,isLocal:t.isLocal||false,timestamp:Date.now()});
+        if(h.length>500)h.length=500;
+        this.set('play_history',h);
     };
-
-    StorageManager.prototype.remove = function(key) {
-        delete this.cache[key];
-        if (this.ok) localStorage.removeItem(this.prefix + key);
+    StorageManager.prototype.isFavorite = function(id,src) { var f=this.get('favorites',[]); for(var i=0;i<f.length;i++){if(f[i].id===id&&f[i].source===src)return true;} return false; };
+    StorageManager.prototype.addToFavorites = function(t) {
+        var f=this.get('favorites',[]);
+        for(var i=0;i<f.length;i++){if(f[i].id===t.id&&f[i].source===t.source)return false;}
+        f.unshift({id:t.id,title:t.title,artist:t.artist,cover:t.cover||null,duration:t.duration||0,source:t.source,addedAt:Date.now()});
+        this.set('favorites',f); return true;
     };
-
-    StorageManager.prototype.addToHistory = function(track) {
-        var h = this.get('play_history', []);
-        h.unshift({
-            id: track.id, title: track.title, artist: track.artist, album: track.album || '',
-            cover: track.cover || null, duration: track.duration || 0, source: track.source,
-            sourceColor: track.sourceColor || null, isLocal: track.isLocal || false, timestamp: Date.now()
-        });
-        if (h.length > 500) h.length = 500;
-        this.set('play_history', h);
+    StorageManager.prototype.removeFromFavorites = function(id,src) {
+        var f=this.get('favorites',[]), n=[];
+        for(var i=0;i<f.length;i++){if(!(f[i].id===id&&f[i].source===src))n.push(f[i]);}
+        this.set('favorites',n);
     };
-
-    StorageManager.prototype.isFavorite = function(id, source) {
-        var f = this.get('favorites', []);
-        for (var i = 0; i < f.length; i++) { if (f[i].id === id && f[i].source === source) return true; }
-        return false;
-    };
-
-    StorageManager.prototype.addToFavorites = function(track) {
-        var f = this.get('favorites', []);
-        for (var i = 0; i < f.length; i++) { if (f[i].id === track.id && f[i].source === track.source) return false; }
-        f.unshift({ id: track.id, title: track.title, artist: track.artist, cover: track.cover || null, duration: track.duration || 0, source: track.source, addedAt: Date.now() });
-        this.set('favorites', f);
-        return true;
-    };
-
-    StorageManager.prototype.removeFromFavorites = function(id, source) {
-        var f = this.get('favorites', []);
-        var n = [];
-        for (var i = 0; i < f.length; i++) { if (!(f[i].id === id && f[i].source === source)) n.push(f[i]); }
-        this.set('favorites', n);
-    };
-
     window.storage = new StorageManager();
 })();
