@@ -3,7 +3,9 @@ class StorageManager {
         this.prefix = 'musichub_';
         this.memoryCache = new Map();
         this.available = this.checkAvailability();
-        this.loadAllToMemory();
+        if (this.available) {
+            this.loadAllToMemory();
+        }
     }
 
     checkAvailability() {
@@ -18,7 +20,6 @@ class StorageManager {
     }
 
     loadAllToMemory() {
-        if (!this.available) return;
         const keys = [
             'settings',
             'connected_services',
@@ -26,36 +27,37 @@ class StorageManager {
             'favorites',
             'queue',
             'spotify_auth',
+            'spotify_auth_state',
             'youtube_config',
-            'soundcloud_config'
+            'soundcloud_config',
+            'current_page'
         ];
         keys.forEach(key => {
-            const raw = localStorage.getItem(this.prefix + key);
-            if (raw) {
-                try {
+            try {
+                const raw = localStorage.getItem(this.prefix + key);
+                if (raw) {
                     this.memoryCache.set(key, JSON.parse(raw));
-                } catch (e) {
-                    this.memoryCache.set(key, null);
                 }
+            } catch (e) {
+                this.memoryCache.set(key, null);
             }
         });
     }
 
     get(key, defaultValue = null) {
         if (this.memoryCache.has(key)) {
-            return this.memoryCache.get(key);
+            const val = this.memoryCache.get(key);
+            return val !== null && val !== undefined ? val : defaultValue;
         }
         if (this.available) {
-            const raw = localStorage.getItem(this.prefix + key);
-            if (raw) {
-                try {
+            try {
+                const raw = localStorage.getItem(this.prefix + key);
+                if (raw) {
                     const parsed = JSON.parse(raw);
                     this.memoryCache.set(key, parsed);
                     return parsed;
-                } catch (e) {
-                    return defaultValue;
                 }
-            }
+            } catch (e) {}
         }
         return defaultValue;
     }
@@ -66,12 +68,7 @@ class StorageManager {
             try {
                 localStorage.setItem(this.prefix + key, JSON.stringify(value));
             } catch (e) {
-                this.clearOldHistory();
-                try {
-                    localStorage.setItem(this.prefix + key, JSON.stringify(value));
-                } catch (e2) {
-                    console.error('Storage full, cannot save:', key);
-                }
+                console.warn('Storage set failed:', key, e);
             }
         }
     }
@@ -83,20 +80,20 @@ class StorageManager {
         }
     }
 
-    clearOldHistory() {
-        const history = this.get('play_history', []);
-        const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
-        const fresh = history.filter(item => item.timestamp > thirtyDaysAgo);
-        this.set('play_history', fresh);
-    }
-
     addToHistory(track) {
         const history = this.get('play_history', []);
-        const entry = {
-            ...track,
+        history.unshift({
+            id: track.id,
+            title: track.title,
+            artist: track.artist,
+            album: track.album || '',
+            cover: track.cover || null,
+            duration: track.duration || 0,
+            source: track.source,
+            sourceColor: track.sourceColor || null,
+            isLocal: track.isLocal || false,
             timestamp: Date.now()
-        };
-        history.unshift(entry);
+        });
         if (history.length > 500) {
             history.length = 500;
         }
@@ -108,7 +105,15 @@ class StorageManager {
         const exists = favorites.find(f => f.id === track.id && f.source === track.source);
         if (!exists) {
             favorites.unshift({
-                ...track,
+                id: track.id,
+                title: track.title,
+                artist: track.artist,
+                album: track.album || '',
+                cover: track.cover || null,
+                duration: track.duration || 0,
+                source: track.source,
+                sourceColor: track.sourceColor || null,
+                isLocal: track.isLocal || false,
                 addedAt: Date.now()
             });
             this.set('favorites', favorites);
