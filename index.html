@@ -4,36 +4,28 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#0a0a0f">
-    <title>MusicHub — Все сервисы в одном</title>
-    
-    <!-- Стили -->
-    <link rel="stylesheet" href="css/themes.css">
+    <title>MusicHub</title>
     <link rel="stylesheet" href="css/style.css">
-    <link rel="stylesheet" href="css/components.css">
-    
-    <!-- Иконки -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lucide-static@0.344.0/font/lucide.css">
+    <link rel="stylesheet" href="css/player.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
     <div id="app">
-        <!-- Боковая панель -->
         <aside id="sidebar"></aside>
-        
-        <!-- Главная область -->
         <main id="main">
             <header id="topbar"></header>
             <div id="content"></div>
         </main>
-        
-        <!-- Плеер -->
         <footer id="player"></footer>
     </div>
     
-    <!-- Модальные окна -->
-    <div id="modals"></div>
-    
-    <!-- Скрипты -->
+    <div id="modal-overlay" class="modal-overlay hidden">
+        <div id="modal-content" class="modal-content"></div>
+    </div>
+
     <script src="js/storage.js"></script>
+    <script src="js/api.js"></script>
     <script src="js/services.js"></script>
     <script src="js/player.js"></script>
     <script src="js/search.js"></script>
