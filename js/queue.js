@@ -10,10 +10,10 @@ class QueueManager {
     }
 
     loadQueue() {
-        const saved = storage.get('queue', []);
+        var saved = storage.get('queue', []);
         if (saved.length > 0) {
             this.queue = saved;
-            this.originalQueue = [...saved];
+            this.originalQueue = saved.slice();
         }
     }
 
@@ -30,23 +30,11 @@ class QueueManager {
         this.notifyListeners('add', track);
     }
 
-    addNext(track) {
-        const insertIndex = this.currentIndex + 1;
-        this.queue.splice(insertIndex, 0, track);
-        if (this.shuffleMode) {
-            const originalIndex = this.originalQueue.indexOf(this.queue[this.currentIndex]);
-            this.originalQueue.splice(originalIndex + 1, 0, track);
-        }
-        this.saveQueue();
-        this.notifyListeners('add_next', track);
-    }
-
     remove(index) {
         if (index >= 0 && index < this.queue.length) {
-            const removed = this.queue[index];
-            this.queue.splice(index, 1);
+            var removed = this.queue.splice(index, 1)[0];
             if (this.shuffleMode) {
-                const originalIndex = this.originalQueue.indexOf(removed);
+                var originalIndex = this.originalQueue.indexOf(removed);
                 if (originalIndex !== -1) {
                     this.originalQueue.splice(originalIndex, 1);
                 }
@@ -78,9 +66,7 @@ class QueueManager {
         if (this.repeatMode === 'one') {
             return this.getCurrent();
         }
-
-        let nextIndex = this.currentIndex + 1;
-
+        var nextIndex = this.currentIndex + 1;
         if (nextIndex >= this.queue.length) {
             if (this.repeatMode === 'all') {
                 nextIndex = 0;
@@ -88,7 +74,6 @@ class QueueManager {
                 return null;
             }
         }
-
         this.currentIndex = nextIndex;
         return this.queue[nextIndex];
     }
@@ -108,28 +93,31 @@ class QueueManager {
     toggleShuffle() {
         this.shuffleMode = !this.shuffleMode;
         if (this.shuffleMode) {
-            this.originalQueue = [...this.queue];
+            this.originalQueue = this.queue.slice();
             this.shuffleArray(this.queue);
-            this.currentIndex = this.queue.indexOf(this.getCurrent());
+            var current = this.getCurrent();
+            this.currentIndex = this.queue.indexOf(current);
         } else {
-            const current = this.getCurrent();
-            this.queue = [...this.originalQueue];
+            var current = this.getCurrent();
+            this.queue = this.originalQueue.slice();
             this.currentIndex = this.queue.indexOf(current);
         }
         this.notifyListeners('shuffle_change', this.shuffleMode);
     }
 
     toggleRepeat() {
-        const modes = ['none', 'all', 'one'];
-        const currentModeIndex = modes.indexOf(this.repeatMode);
+        var modes = ['none', 'all', 'one'];
+        var currentModeIndex = modes.indexOf(this.repeatMode);
         this.repeatMode = modes[(currentModeIndex + 1) % modes.length];
         this.notifyListeners('repeat_change', this.repeatMode);
     }
 
     shuffleArray(array) {
-        for (let i = array.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [array[i], array[j]] = [array[j], array[i]];
+        for (var i = array.length - 1; i > 0; i--) {
+            var j = Math.floor(Math.random() * (i + 1));
+            var temp = array[i];
+            array[i] = array[j];
+            array[j] = temp;
         }
     }
 
@@ -137,18 +125,16 @@ class QueueManager {
         return this.queue;
     }
 
-    getUpcoming() {
-        return this.queue.slice(this.currentIndex + 1);
-    }
-
     on(event, callback) {
-        this.listeners.push({ event, callback });
+        this.listeners.push({ event: event, callback: callback });
     }
 
     notifyListeners(event, data) {
-        this.listeners
-            .filter(l => l.event === event)
-            .forEach(l => l.callback(data));
+        for (var i = 0; i < this.listeners.length; i++) {
+            if (this.listeners[i].event === event) {
+                this.listeners[i].callback(data);
+            }
+        }
     }
 }
 
