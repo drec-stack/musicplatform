@@ -1,5 +1,7 @@
-class QueueManager {
-    constructor() {
+(function() {
+    'use strict';
+
+    function QueueManager() {
         this.queue = [];
         this.currentIndex = -1;
         this.shuffleMode = false;
@@ -9,28 +11,28 @@ class QueueManager {
         this.loadQueue();
     }
 
-    loadQueue() {
+    QueueManager.prototype.loadQueue = function() {
         var saved = storage.get('queue', []);
         if (saved.length > 0) {
             this.queue = saved;
             this.originalQueue = saved.slice();
         }
-    }
+    };
 
-    saveQueue() {
+    QueueManager.prototype.saveQueue = function() {
         storage.set('queue', this.queue.slice(0, 100));
-    }
+    };
 
-    add(track) {
+    QueueManager.prototype.add = function(track) {
         this.queue.push(track);
         if (this.shuffleMode) {
             this.originalQueue.push(track);
         }
         this.saveQueue();
         this.notifyListeners('add', track);
-    }
+    };
 
-    remove(index) {
+    QueueManager.prototype.remove = function(index) {
         if (index >= 0 && index < this.queue.length) {
             var removed = this.queue.splice(index, 1)[0];
             if (this.shuffleMode) {
@@ -45,24 +47,24 @@ class QueueManager {
             this.saveQueue();
             this.notifyListeners('remove', removed);
         }
-    }
+    };
 
-    clear() {
+    QueueManager.prototype.clear = function() {
         this.queue = [];
         this.originalQueue = [];
         this.currentIndex = -1;
         this.saveQueue();
         this.notifyListeners('clear');
-    }
+    };
 
-    getCurrent() {
+    QueueManager.prototype.getCurrent = function() {
         if (this.currentIndex >= 0 && this.currentIndex < this.queue.length) {
             return this.queue[this.currentIndex];
         }
         return null;
-    }
+    };
 
-    getNext() {
+    QueueManager.prototype.getNext = function() {
         if (this.repeatMode === 'one') {
             return this.getCurrent();
         }
@@ -76,9 +78,9 @@ class QueueManager {
         }
         this.currentIndex = nextIndex;
         return this.queue[nextIndex];
-    }
+    };
 
-    getPrevious() {
+    QueueManager.prototype.getPrevious = function() {
         if (this.currentIndex > 0) {
             this.currentIndex--;
             return this.queue[this.currentIndex];
@@ -88,9 +90,9 @@ class QueueManager {
             return this.queue[this.currentIndex];
         }
         return null;
-    }
+    };
 
-    toggleShuffle() {
+    QueueManager.prototype.toggleShuffle = function() {
         this.shuffleMode = !this.shuffleMode;
         if (this.shuffleMode) {
             this.originalQueue = this.queue.slice();
@@ -103,39 +105,45 @@ class QueueManager {
             this.currentIndex = this.queue.indexOf(current);
         }
         this.notifyListeners('shuffle_change', this.shuffleMode);
-    }
+    };
 
-    toggleRepeat() {
+    QueueManager.prototype.toggleRepeat = function() {
         var modes = ['none', 'all', 'one'];
-        var currentModeIndex = modes.indexOf(this.repeatMode);
+        var currentModeIndex = -1;
+        for (var i = 0; i < modes.length; i++) {
+            if (modes[i] === this.repeatMode) {
+                currentModeIndex = i;
+                break;
+            }
+        }
         this.repeatMode = modes[(currentModeIndex + 1) % modes.length];
         this.notifyListeners('repeat_change', this.repeatMode);
-    }
+    };
 
-    shuffleArray(array) {
+    QueueManager.prototype.shuffleArray = function(array) {
         for (var i = array.length - 1; i > 0; i--) {
             var j = Math.floor(Math.random() * (i + 1));
             var temp = array[i];
             array[i] = array[j];
             array[j] = temp;
         }
-    }
+    };
 
-    getAll() {
+    QueueManager.prototype.getAll = function() {
         return this.queue;
-    }
+    };
 
-    on(event, callback) {
+    QueueManager.prototype.on = function(event, callback) {
         this.listeners.push({ event: event, callback: callback });
-    }
+    };
 
-    notifyListeners(event, data) {
+    QueueManager.prototype.notifyListeners = function(event, data) {
         for (var i = 0; i < this.listeners.length; i++) {
             if (this.listeners[i].event === event) {
                 this.listeners[i].callback(data);
             }
         }
-    }
-}
+    };
 
-window.queueManager = new QueueManager();
+    window.queueManager = new QueueManager();
+})();
