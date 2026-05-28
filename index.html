@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MusicHub — Вселенная музыки</title>
+    <link rel="stylesheet" href="styles.css">
+    <!-- Иконки Lucide -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- SDK Spotify -->
+    <script src="https://sdk.scdn.co/spotify-player.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Боковая панель -->
+        <nav class="sidebar glass">
+            <div class="logo">
+                <i data-lucide="music-4" class="logo-icon"></i>
+                <span>MusicHub</span>
+            </div>
+            
+            <div class="nav-menu">
+                <a href="#" class="nav-item active" data-page="home">
+                    <i data-lucide="home"></i> Главная
+                </a>
+                <a href="#" class="nav-item" data-page="search">
+                    <i data-lucide="search"></i> Поиск
+                </a>
+                <a href="#" class="nav-item" data-page="library">
+                    <i data-lucide="library"></i> Моя медиатека
+                </a>
+                <a href="#" class="nav-item" data-page="discover">
+                    <i data-lucide="compass"></i> Открытия
+                </a>
+                <a href="#" class="nav-item" data-page="tools">
+                    <i data-lucide="wrench"></i> Инструменты
+                </a>
+            </div>
+            
+            <div class="connected-services">
+                <h3>Подключённые сервисы</h3>
+                <div class="service-list" id="serviceList">
+                    <!-- Динамически заполняется -->
+                </div>
+                <button class="btn-add-service" id="addServiceBtn">
+                    <i data-lucide="plus-circle"></i> Добавить сервис
+                </button>
+            </div>
+            
+            <div class="now-playing-mini" id="nowPlayingMini">
+                <img src="" alt="" class="np-cover" id="npCover">
+                <div class="np-info">
+                    <div class="np-title" id="npTitle">Не играет</div>
+                    <div class="np-artist" id="npArtist">Выберите трек</div>
+                </div>
+                <button class="np-play" id="npPlayBtn">
+                    <i data-lucide="play"></i>
+                </button>
+            </div>
+        </nav>
+
+        <!-- Основной контент -->
+        <main class="main-content">
+            <!-- Поисковая строка (глобальная) -->
+            <header class="top-bar">
+                <div class="global-search">
+                    <i data-lucide="search" class="search-icon"></i>
+                    <input type="text" id="globalSearch" placeholder="Искать везде — Spotify, YouTube, Apple Music, SoundCloud...">
+                </div>
+                <div class="user-profile">
+                    <img src="https://i.pravatar.cc/40" alt="User" class="avatar">
+                </div>
+            </header>
+
+            <!-- Динамические страницы -->
+            <div class="page-container" id="pageContainer">
+                <!-- Страницы рендерятся через JS -->
+            </div>
+        </main>
+
+        <!-- Панель плеера -->
+        <div class="player-bar glass" id="playerBar">
+            <div class="player-track-info">
+                <img src="https://via.placeholder.com/56" alt="" class="player-cover" id="playerCover">
+                <div class="player-track-text">
+                    <div class="player-track-name" id="playerTrackName">Выберите трек из любого сервиса</div>
+                    <div class="player-track-artist" id="playerTrackArtist">MusicHub — универсальный плеер</div>
+                </div>
+                <button class="player-like"><i data-lucide="heart"></i></button>
+            </div>
+            
+            <div class="player-controls">
+                <div class="player-buttons">
+                    <button class="ctrl-btn"><i data-lucide="shuffle"></i></button>
+                    <button class="ctrl-btn"><i data-lucide="skip-back"></i></button>
+                    <button class="ctrl-btn play-btn" id="mainPlayBtn"><i data-lucide="play" fill="currentColor"></i></button>
+                    <button class="ctrl-btn"><i data-lucide="skip-forward"></i></button>
+                    <button class="ctrl-btn"><i data-lucide="repeat"></i></button>
+                </div>
+                <div class="player-progress">
+                    <span id="currentTime">0:00</span>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                    <span id="totalTime">0:00</span>
+                </div>
+            </div>
+            
+            <div class="player-extras">
+                <button class="extra-btn"><i data-lucide="mic-2"></i></button>
+                <button class="extra-btn" id="lyricsBtn"><i data-lucide="align-left"></i></button>
+                <button class="extra-btn" id="queueBtn"><i data-lucide="list-music"></i></button>
+                <button class="extra-btn" id="connectBtn"><i data-lucide="radio"></i></button>
+                <div class="volume-control">
+                    <i data-lucide="volume-2"></i>
+                    <input type="range" class="volume-slider" id="volumeSlider" min="0" max="100" value="70">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно сервисов -->
+    <div class="modal glass" id="serviceModal">
+        <div class="modal-content">
+            <h2>Подключить музыкальный сервис</h2>
+            <div class="service-grid" id="serviceGrid">
+                <div class="service-card" data-service="spotify">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/1/19/Spotify_logo_without_text.svg" alt="Spotify">
+                    <span>Spotify</span>
+                    <button class="btn-connect">Подключить</button>
+                </div>
+                <div class="service-card" data-service="youtube">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/0/09/YouTube_full-color_icon_%282017%29.svg" alt="YouTube Music">
+                    <span>YouTube Music</span>
+                    <button class="btn-connect">Подключить</button>
+                </div>
+                <div class="service-card" data-service="apple">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg" alt="Apple Music">
+                    <span>Apple Music</span>
+                    <button class="btn-connect">Подключить</button>
+                </div>
+                <div class="service-card" data-service="soundcloud">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/a/a2/Antu_soundcloud.svg" alt="SoundCloud">
+                    <span>SoundCloud</span>
+                    <button class="btn-connect">Подключить</button>
+                </div>
+                <div class="service-card" data-service="deezer">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/c/cd/Deezer_logo_2019.svg" alt="Deezer">
+                    <span>Deezer</span>
+                    <button class="btn-connect">Подключить</button>
+                </div>
+                <div class="service-card" data-service="lastfm">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/8/8a/Last.fm_icon.png" alt="Last.fm">
+                    <span>Last.fm</span>
+                    <button class="btn-connect">Подключить</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
