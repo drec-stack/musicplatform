@@ -16,7 +16,6 @@
                     var parts = pairs[i].split('=');
                     params[decodeURIComponent(parts[0])] = decodeURIComponent(parts[1] || '');
                 }
-                
                 if (params.access_token) {
                     var data = {
                         accessToken: params.access_token,
