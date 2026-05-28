@@ -1,190 +1,57 @@
 (function() {
     'use strict';
-
     function LibraryManager() {}
-
-    LibraryManager.prototype.getTracks = function(options) {
-        var opts = options || {};
-        return db.getAllTracks().then(function(tracks) {
-            if (opts.source && opts.source !== 'all') {
-                tracks = tracks.filter(function(t) { return t.source === opts.source; });
-            }
-
-            if (opts.search) {
-                var query = opts.search.toLowerCase();
-                tracks = tracks.filter(function(t) {
-                    return (t.title && t.title.toLowerCase().indexOf(query) !== -1) ||
-                           (t.artist && t.artist.toLowerCase().indexOf(query) !== -1);
-                });
-            }
-
-            if (opts.sort === 'title') {
-                tracks.sort(function(a, b) { return (a.title || '').localeCompare(b.title || ''); });
-            } else if (opts.sort === 'artist') {
-                tracks.sort(function(a, b) { return (a.artist || '').localeCompare(b.artist || ''); });
-            } else if (opts.sort === 'playCount') {
-                tracks.sort(function(a, b) { return (b.playCount || 0) - (a.playCount || 0); });
-            } else {
-                tracks.sort(function(a, b) { return b.dateAdded - a.dateAdded; });
-            }
-
-            if (opts.limit) {
-                tracks = tracks.slice(0, opts.limit);
-            }
-
-            return tracks;
+    LibraryManager.prototype.getTracks = function(o) {
+        var opts=o||{};
+        return db.getAllTracks().then(function(t){
+            if(opts.source&&opts.source!=='all')t=t.filter(function(tr){return tr.source===opts.source;});
+            if(opts.search){var q=opts.search.toLowerCase();t=t.filter(function(tr){return(tr.title&&tr.title.toLowerCase().indexOf(q)!==-1)||(tr.artist&&tr.artist.toLowerCase().indexOf(q)!==-1);});}
+            if(opts.sort==='title')t.sort(function(a,b){return(a.title||'').localeCompare(b.title||'');});
+            else if(opts.sort==='artist')t.sort(function(a,b){return(a.artist||'').localeCompare(b.artist||'');});
+            else if(opts.sort==='playCount')t.sort(function(a,b){return(b.playCount||0)-(a.playCount||0);});
+            else t.sort(function(a,b){return b.dateAdded-a.dateAdded;});
+            if(opts.limit)t=t.slice(0,opts.limit);
+            return t;
         });
     };
-
     LibraryManager.prototype.getArtists = function() {
-        return db.getAllTracks().then(function(tracks) {
-            var artistMap = {};
-            for (var i = 0; i < tracks.length; i++) {
-                var artist = tracks[i].artist || 'Unknown';
-                if (!artistMap[artist]) {
-                    artistMap[artist] = { name: artist, trackCount: 0, albums: {} };
-                }
-                artistMap[artist].trackCount++;
-                if (tracks[i].album) {
-                    artistMap[artist].albums[tracks[i].album] = true;
-                }
-            }
-            var result = [];
-            for (var key in artistMap) {
-                if (artistMap.hasOwnProperty(key)) {
-                    var a = artistMap[key];
-                    var albumList = [];
-                    for (var album in a.albums) {
-                        if (a.albums.hasOwnProperty(album)) {
-                            albumList.push(album);
-                        }
-                    }
-                    result.push({ name: a.name, trackCount: a.trackCount, albums: albumList });
-                }
-            }
-            return result;
+        return db.getAllTracks().then(function(t){
+            var m={};
+            for(var i=0;i<t.length;i++){var a=t[i].artist||'Unknown';if(!m[a])m[a]={name:a,trackCount:0,albums:{}};m[a].trackCount++;if(t[i].album)m[a].albums[t[i].album]=true;}
+            var r=[]; for(var k in m){if(m.hasOwnProperty(k)){var al=[];for(var ak in m[k].albums){if(m[k].albums.hasOwnProperty(ak))al.push(ak);}r.push({name:m[k].name,trackCount:m[k].trackCount,albums:al});}} return r;
         });
     };
-
     LibraryManager.prototype.getAlbums = function() {
-        return db.getAllTracks().then(function(tracks) {
-            var albumMap = {};
-            for (var i = 0; i < tracks.length; i++) {
-                var albumKey = (tracks[i].album || 'Unknown') + '|||' + (tracks[i].artist || 'Unknown');
-                if (!albumMap[albumKey]) {
-                    albumMap[albumKey] = {
-                        name: tracks[i].album || 'Unknown',
-                        artist: tracks[i].artist || 'Unknown',
-                        trackCount: 0
-                    };
-                }
-                albumMap[albumKey].trackCount++;
-            }
-            var result = [];
-            for (var key in albumMap) {
-                if (albumMap.hasOwnProperty(key)) {
-                    result.push(albumMap[key]);
-                }
-            }
-            return result;
+        return db.getAllTracks().then(function(t){
+            var m={};
+            for(var i=0;i<t.length;i++){var key=(t[i].album||'Unknown')+'|||'+(t[i].artist||'Unknown');if(!m[key])m[key]={name:t[i].album||'Unknown',artist:t[i].artist||'Unknown',trackCount:0};m[key].trackCount++;}
+            var r=[]; for(var k in m){if(m.hasOwnProperty(k))r.push(m[k]);} return r;
         });
     };
-
-    LibraryManager.prototype.getPlaylists = function() {
-        return db.getAllPlaylists();
-    };
-
-    LibraryManager.prototype.createPlaylist = function(name, description) {
-        return db.createPlaylist(name, description);
-    };
-
-    LibraryManager.prototype.deletePlaylist = function(id) {
-        return db.deletePlaylist(id);
-    };
-
-    LibraryManager.prototype.addToPlaylist = function(playlistId, trackId) {
-        return db.addTrackToPlaylist(playlistId, trackId);
-    };
-
-    LibraryManager.prototype.getPlaylist = function(playlistId) {
-        return db.getPlaylist(playlistId);
-    };
-
-    LibraryManager.prototype.getPlaylistTracks = function(playlistId) {
-        var self = this;
-        return db.getPlaylist(playlistId).then(function(playlist) {
-            if (!playlist) return [];
-            var promises = [];
-            for (var i = 0; i < playlist.tracks.length; i++) {
-                promises.push(db.getTrack(playlist.tracks[i]));
-            }
-            return Promise.all(promises).then(function(tracks) {
-                return tracks.filter(function(t) { return t !== null && t !== undefined; });
-            });
+    LibraryManager.prototype.getPlaylists = function() { return db.getAllPlaylists(); };
+    LibraryManager.prototype.createPlaylist = function(n,d) { return db.createPlaylist(n,d); };
+    LibraryManager.prototype.deletePlaylist = function(id) { return db.deletePlaylist(id); };
+    LibraryManager.prototype.addToPlaylist = function(pid,tid) { return db.addTrackToPlaylist(pid,tid); };
+    LibraryManager.prototype.getPlaylist = function(id) { return db.getPlaylist(id); };
+    LibraryManager.prototype.getPlaylistTracks = function(pid) {
+        return db.getPlaylist(pid).then(function(pl){
+            if(!pl)return[];
+            var ps=[];
+            for(var i=0;i<pl.tracks.length;i++){ps.push(db.getTrack(pl.tracks[i]));}
+            return Promise.all(ps).then(function(tr){return tr.filter(function(t){return t!==null&&t!==undefined;});});
         });
     };
-
-    LibraryManager.prototype.deleteTrack = function(trackId) {
-        return db.deleteTrack(trackId);
-    };
-
-    LibraryManager.prototype.getStats = function() {
-        return db.getStats();
-    };
-
-    LibraryManager.prototype.search = function(query) {
-        return db.searchTracks(query);
-    };
-
-    LibraryManager.prototype.getRecentTracks = function(limit) {
-        return db.getAllTracks().then(function(tracks) {
-            tracks.sort(function(a, b) { return b.dateAdded - a.dateAdded; });
-            return tracks.slice(0, limit || 50);
-        });
-    };
-
-    LibraryManager.prototype.getMostPlayed = function(limit) {
-        return db.getAllTracks().then(function(tracks) {
-            tracks.sort(function(a, b) { return (b.playCount || 0) - (a.playCount || 0); });
-            return tracks.slice(0, limit || 50);
-        });
-    };
-
+    LibraryManager.prototype.deleteTrack = function(id) { return db.deleteTrack(id); };
+    LibraryManager.prototype.getStats = function() { return db.getStats(); };
+    LibraryManager.prototype.search = function(q) { return db.searchTracks(q); };
+    LibraryManager.prototype.getRecentTracks = function(l) { return db.getAllTracks().then(function(t){t.sort(function(a,b){return b.dateAdded-a.dateAdded;});return t.slice(0,l||50);}); };
+    LibraryManager.prototype.getMostPlayed = function(l) { return db.getAllTracks().then(function(t){t.sort(function(a,b){return(b.playCount||0)-(a.playCount||0);});return t.slice(0,l||50);}); };
     LibraryManager.prototype.getDuplicates = function() {
-        return db.getAllTracks().then(function(tracks) {
-            var duplicates = [];
-            var seen = {};
-            for (var i = 0; i < tracks.length; i++) {
-                var key = (tracks[i].title || '').toLowerCase() + '|||' + (tracks[i].artist || '').toLowerCase();
-                if (seen[key]) {
-                    duplicates.push({ original: seen[key], duplicate: tracks[i], key: key });
-                } else {
-                    seen[key] = tracks[i];
-                }
-            }
-            return duplicates;
-        });
+        return db.getAllTracks().then(function(t){var d=[],s={};for(var i=0;i<t.length;i++){var k=(t[i].title||'').toLowerCase()+'|||'+(t[i].artist||'').toLowerCase();if(s[k])d.push({original:s[k],duplicate:t[i]});else s[k]=t[i];}return d;});
     };
-
     LibraryManager.prototype.removeDuplicates = function() {
-        var self = this;
-        return this.getDuplicates().then(function(duplicates) {
-            var promises = [];
-            var removed = [];
-            for (var i = 0; i < duplicates.length; i++) {
-                (function(dup) {
-                    promises.push(db.deleteTrack(dup.duplicate.id).then(function() {
-                        removed.push(dup.duplicate);
-                    }));
-                })(duplicates[i]);
-            }
-            return Promise.all(promises).then(function() { return removed; });
-        });
+        var s=this; return this.getDuplicates().then(function(d){var ps=[],r=[];for(var i=0;i<d.length;i++){(function(dp){ps.push(db.deleteTrack(dp.duplicate.id).then(function(){r.push(dp.duplicate);}));})(d[i]);}return Promise.all(ps).then(function(){return r;});});
     };
-
-    LibraryManager.prototype.exportLibrary = function() {
-        return db.exportLibrary();
-    };
-
+    LibraryManager.prototype.exportLibrary = function() { return db.exportLibrary(); };
     window.library = new LibraryManager();
 })();
