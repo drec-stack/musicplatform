@@ -1,87 +1,85 @@
-class StorageManager {
-    constructor() {
+(function() {
+    'use strict';
+
+    function StorageManager() {
         this.prefix = 'musichub_';
-        this.memoryCache = new Map();
+        this.memoryCache = {};
         this.available = this.checkAvailability();
         if (this.available) {
             this.loadAllToMemory();
         }
     }
 
-    checkAvailability() {
+    StorageManager.prototype.checkAvailability = function() {
         try {
-            const test = '__storage_test__';
+            var test = '__storage_test__';
             localStorage.setItem(test, test);
             localStorage.removeItem(test);
             return true;
         } catch (e) {
             return false;
         }
-    }
+    };
 
-    loadAllToMemory() {
-        const keys = [
-            'settings',
-            'connected_services',
-            'play_history',
-            'favorites',
-            'queue',
-            'spotify_auth',
-            'spotify_auth_state',
-            'youtube_config',
-            'soundcloud_config',
-            'current_page'
+    StorageManager.prototype.loadAllToMemory = function() {
+        var keys = [
+            'settings', 'connected_services', 'play_history', 'favorites',
+            'queue', 'spotify_auth', 'spotify_auth_state', 'youtube_config',
+            'soundcloud_config', 'current_page'
         ];
-        keys.forEach(key => {
-            try {
-                const raw = localStorage.getItem(this.prefix + key);
-                if (raw) {
-                    this.memoryCache.set(key, JSON.parse(raw));
+        var self = this;
+        for (var i = 0; i < keys.length; i++) {
+            (function(key) {
+                try {
+                    var raw = localStorage.getItem(self.prefix + key);
+                    if (raw) {
+                        self.memoryCache[key] = JSON.parse(raw);
+                    }
+                } catch (e) {
+                    self.memoryCache[key] = null;
                 }
-            } catch (e) {
-                this.memoryCache.set(key, null);
-            }
-        });
-    }
+            })(keys[i]);
+        }
+    };
 
-    get(key, defaultValue = null) {
-        if (this.memoryCache.has(key)) {
-            const val = this.memoryCache.get(key);
-            return val !== null && val !== undefined ? val : defaultValue;
+    StorageManager.prototype.get = function(key, defaultValue) {
+        if (this.memoryCache.hasOwnProperty(key)) {
+            var val = this.memoryCache[key];
+            return (val !== null && val !== undefined) ? val : (defaultValue !== undefined ? defaultValue : null);
         }
         if (this.available) {
             try {
-                const raw = localStorage.getItem(this.prefix + key);
+                var raw = localStorage.getItem(this.prefix + key);
                 if (raw) {
-                    const parsed = JSON.parse(raw);
-                    this.memoryCache.set(key, parsed);
+                    var parsed = JSON.parse(raw);
+                    this.memoryCache[key] = parsed;
                     return parsed;
                 }
             } catch (e) {}
         }
-        return defaultValue;
-    }
+        return defaultValue !== undefined ? defaultValue : null;
+    };
 
-    set(key, value) {
-        this.memoryCache.set(key, value);
+    StorageManager.prototype.set = function(key, value) {
+        this.memoryCache[key] = value;
         if (this.available) {
             try {
                 localStorage.setItem(this.prefix + key, JSON.stringify(value));
             } catch (e) {
-                console.warn('Storage set failed:', key, e);
+                // localStorage переполнен
             }
         }
-    }
+    };
 
-    remove(key) {
-        this.memoryCache.delete(key);
+    StorageManager.prototype.remove = function(key) {
+        delete this.memoryCache[key];
         if (this.available) {
             localStorage.removeItem(this.prefix + key);
         }
-    }
+    };
 
-    addToHistory(track) {
-        const history = this.get('play_history', []);
+    StorageManager.prototype.addToHistory = function(track) {
+        var history = this.get('play_history', []);
         history.unshift({
             id: track.id,
             title: track.title,
@@ -98,40 +96,51 @@ class StorageManager {
             history.length = 500;
         }
         this.set('play_history', history);
-    }
+    };
 
-    addToFavorites(track) {
-        const favorites = this.get('favorites', []);
-        const exists = favorites.find(f => f.id === track.id && f.source === track.source);
-        if (!exists) {
-            favorites.unshift({
-                id: track.id,
-                title: track.title,
-                artist: track.artist,
-                album: track.album || '',
-                cover: track.cover || null,
-                duration: track.duration || 0,
-                source: track.source,
-                sourceColor: track.sourceColor || null,
-                isLocal: track.isLocal || false,
-                addedAt: Date.now()
-            });
-            this.set('favorites', favorites);
-            return true;
+    StorageManager.prototype.addToFavorites = function(track) {
+        var favorites = this.get('favorites', []);
+        for (var i = 0; i < favorites.length; i++) {
+            if (favorites[i].id === track.id && favorites[i].source === track.source) {
+                return false;
+            }
+        }
+        favorites.unshift({
+            id: track.id,
+            title: track.title,
+            artist: track.artist,
+            album: track.album || '',
+            cover: track.cover || null,
+            duration: track.duration || 0,
+            source: track.source,
+            sourceColor: track.sourceColor || null,
+            isLocal: track.isLocal || false,
+            addedAt: Date.now()
+        });
+        this.set('favorites', favorites);
+        return true;
+    };
+
+    StorageManager.prototype.removeFromFavorites = function(trackId, source) {
+        var favorites = this.get('favorites', []);
+        var newFavorites = [];
+        for (var i = 0; i < favorites.length; i++) {
+            if (!(favorites[i].id === trackId && favorites[i].source === source)) {
+                newFavorites.push(favorites[i]);
+            }
+        }
+        this.set('favorites', newFavorites);
+    };
+
+    StorageManager.prototype.isFavorite = function(trackId, source) {
+        var favorites = this.get('favorites', []);
+        for (var i = 0; i < favorites.length; i++) {
+            if (favorites[i].id === trackId && favorites[i].source === source) {
+                return true;
+            }
         }
         return false;
-    }
+    };
 
-    removeFromFavorites(trackId, source) {
-        let favorites = this.get('favorites', []);
-        favorites = favorites.filter(f => !(f.id === trackId && f.source === source));
-        this.set('favorites', favorites);
-    }
-
-    isFavorite(trackId, source) {
-        const favorites = this.get('favorites', []);
-        return favorites.some(f => f.id === trackId && f.source === source);
-    }
-}
-
-window.storage = new StorageManager();
+    window.storage = new StorageManager();
+})();
