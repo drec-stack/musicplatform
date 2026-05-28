@@ -1,64 +1,57 @@
-// js/app.js
-class MusicHubApp {
+class App {
     constructor() {
-        this.version = '1.0.0';
         this.initialized = false;
     }
-    
+
     async init() {
         if (this.initialized) return;
-        
-        console.log(`🎵 MusicHub v${this.version} запускается...`);
-        
+
         try {
-            // Инициализируем UI
+            player.init();
+            
             ui.init();
-            
-            // Проверяем callback от OAuth
-            if (window.location.hash) {
-                const result = services.handleAuthCallback();
-                if (result.success) {
-                    ui.showNotification(`${result.service} успешно подключён!`, 'success');
-                    ui.renderSidebar(); // Обновляем боковую панель
+            ui.bindPlayerEvents();
+
+            player.on('play', () => ui.updatePlayerUI());
+            player.on('pause', () => ui.updatePlayerUI());
+            player.on('track_change', () => ui.updatePlayerUI());
+            player.on('progress', (data) => ui.updateProgress(data));
+            player.on('ended', () => {
+                const next = queueManager.getNext();
+                if (next) {
+                    player.play(next);
                 }
-            }
-            
-            // Восстанавливаем последнюю страницу
-            const lastPage = storage.get('current_page') || 'home';
-            ui.navigateTo(lastPage);
-            
+            });
+
+            player.on('no_source', () => {
+                ui.showNotification('Нет доступного источника для воспроизведения', 'error');
+            });
+
+            queueManager.on('shuffle_change', (mode) => {
+                const btn = document.getElementById('shuffleBtn');
+                if (btn) btn.classList.toggle('active', mode);
+            });
+
+            queueManager.on('repeat_change', (mode) => {
+                const btn = document.getElementById('repeatBtn');
+                if (btn) {
+                    btn.classList.remove('active');
+                    if (mode !== 'none') btn.classList.add('active');
+                }
+            });
+
             this.initialized = true;
-            console.log('✅ MusicHub готов к работе');
-            
-            // Приветственное сообщение
-            const connectedCount = services.getAllServices()
-                .filter(s => s.connected).length;
-                
-            if (connectedCount === 0) {
-                setTimeout(() => {
-                    ui.showNotification(
-                        '👋 Подключите музыкальные сервисы в настройках для начала работы',
-                        'info'
-                    );
-                }, 1000);
-            }
-            
+            console.log('MusicHub initialized');
         } catch (error) {
-            console.error('❌ Ошибка инициализации:', error);
-            ui.showNotification('Ошибка запуска приложения', 'error');
+            console.error('Initialization error:', error);
         }
     }
 }
 
-// Создаём и запускаем приложение
-const app = new MusicHubApp();
+const app = new App();
 
-// Ждём загрузку DOM
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => app.init());
-} else {
+document.addEventListener('DOMContentLoaded', () => {
     app.init();
-}
+});
 
-// Экспортируем для отладки
 window.musicHubApp = app;
