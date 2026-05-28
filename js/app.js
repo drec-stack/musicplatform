@@ -7,8 +7,11 @@ class App {
         if (this.initialized) return;
 
         try {
+            await db.open();
+            console.log('Database initialized');
+
             player.init();
-            
+
             ui.init();
             ui.bindPlayerEvents();
 
@@ -20,6 +23,8 @@ class App {
                 const next = queueManager.getNext();
                 if (next) {
                     player.play(next);
+                } else {
+                    ui.updatePlayerUI();
                 }
             });
 
@@ -40,10 +45,14 @@ class App {
                 }
             });
 
+            const stats = await library.getStats();
+            console.log('Library stats:', stats);
+
             this.initialized = true;
-            console.log('MusicHub initialized');
+            console.log('MusicHub Platform initialized');
         } catch (error) {
             console.error('Initialization error:', error);
+            ui.showNotification('Ошибка инициализации платформы', 'error');
         }
     }
 }
