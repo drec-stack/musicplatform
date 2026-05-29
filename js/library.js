@@ -1,57 +1,199 @@
 (function() {
     'use strict';
-    function LibraryManager() {}
-    LibraryManager.prototype.getTracks = function(o) {
-        var opts=o||{};
-        return db.getAllTracks().then(function(t){
-            if(opts.source&&opts.source!=='all')t=t.filter(function(tr){return tr.source===opts.source;});
-            if(opts.search){var q=opts.search.toLowerCase();t=t.filter(function(tr){return(tr.title&&tr.title.toLowerCase().indexOf(q)!==-1)||(tr.artist&&tr.artist.toLowerCase().indexOf(q)!==-1);});}
-            if(opts.sort==='title')t.sort(function(a,b){return(a.title||'').localeCompare(b.title||'');});
-            else if(opts.sort==='artist')t.sort(function(a,b){return(a.artist||'').localeCompare(b.artist||'');});
-            else if(opts.sort==='playCount')t.sort(function(a,b){return(b.playCount||0)-(a.playCount||0);});
-            else t.sort(function(a,b){return b.dateAdded-a.dateAdded;});
-            if(opts.limit)t=t.slice(0,opts.limit);
-            return t;
+    
+    function Library() {
+        this.tracks = [];
+        this.playlists = [];
+        this.init();
+    }
+    
+    Library.prototype.init = function() {
+        var self = this;
+        db.getAllTracks().then(function(tracks) {
+            self.tracks = tracks;
+        });
+        db.getAllPlaylists().then(function(playlists) {
+            self.playlists = playlists;
         });
     };
-    LibraryManager.prototype.getArtists = function() {
-        return db.getAllTracks().then(function(t){
-            var m={};
-            for(var i=0;i<t.length;i++){var a=t[i].artist||'Unknown';if(!m[a])m[a]={name:a,trackCount:0,albums:{}};m[a].trackCount++;if(t[i].album)m[a].albums[t[i].album]=true;}
-            var r=[]; for(var k in m){if(m.hasOwnProperty(k)){var al=[];for(var ak in m[k].albums){if(m[k].albums.hasOwnProperty(ak))al.push(ak);}r.push({name:m[k].name,trackCount:m[k].trackCount,albums:al});}} return r;
+    
+    Library.prototype.getTracks = function(options) {
+        var self = this;
+        return db.getAllTracks().then(function(tracks) {
+            self.tracks = tracks;
+            
+            if (options && options.sort === 'dateAdded') {
+                tracks.sort(function(a, b) { return (b.dateAdded || 0) - (a.dateAdded || 0); });
+            } else if (options && options.sort === 'title') {
+                tracks.sort(function(a, b) { return (a.title || '').localeCompare(b.title || ''); });
+            } else if (options && options.sort === 'artist') {
+                tracks.sort(function(a, b) { return (a.artist || '').localeCompare(b.artist || ''); });
+            }
+            
+            return tracks;
         });
     };
-    LibraryManager.prototype.getAlbums = function() {
-        return db.getAllTracks().then(function(t){
-            var m={};
-            for(var i=0;i<t.length;i++){var key=(t[i].album||'Unknown')+'|||'+(t[i].artist||'Unknown');if(!m[key])m[key]={name:t[i].album||'Unknown',artist:t[i].artist||'Unknown',trackCount:0};m[key].trackCount++;}
-            var r=[]; for(var k in m){if(m.hasOwnProperty(k))r.push(m[k]);} return r;
+    
+    Library.prototype.getRecentTracks = function(limit) {
+        return this.getTracks({ sort: 'dateAdded' }).then(function(tracks) {
+            return tracks.slice(0, limit || 10);
         });
     };
-    LibraryManager.prototype.getPlaylists = function() { return db.getAllPlaylists(); };
-    LibraryManager.prototype.createPlaylist = function(n,d) { return db.createPlaylist(n,d); };
-    LibraryManager.prototype.deletePlaylist = function(id) { return db.deletePlaylist(id); };
-    LibraryManager.prototype.addToPlaylist = function(pid,tid) { return db.addTrackToPlaylist(pid,tid); };
-    LibraryManager.prototype.getPlaylist = function(id) { return db.getPlaylist(id); };
-    LibraryManager.prototype.getPlaylistTracks = function(pid) {
-        return db.getPlaylist(pid).then(function(pl){
-            if(!pl)return[];
-            var ps=[];
-            for(var i=0;i<pl.tracks.length;i++){ps.push(db.getTrack(pl.tracks[i]));}
-            return Promise.all(ps).then(function(tr){return tr.filter(function(t){return t!==null&&t!==undefined;});});
+    
+    Library.prototype.getArtists = function() {
+        return this.getTracks().then(function(tracks) {
+            var artistsMap = {};
+            tracks.forEach(function(track) {
+                if (track.artist) {
+                    if (!artistsMap[track.artist]) {
+                        artistsMap[track.artist] = { name: track.artist, trackCount: 0 };
+                    }
+                    artistsMap[track.artist].trackCount++;
+                }
+            });
+            return Object.values(artistsMap);
         });
     };
-    LibraryManager.prototype.deleteTrack = function(id) { return db.deleteTrack(id); };
-    LibraryManager.prototype.getStats = function() { return db.getStats(); };
-    LibraryManager.prototype.search = function(q) { return db.searchTracks(q); };
-    LibraryManager.prototype.getRecentTracks = function(l) { return db.getAllTracks().then(function(t){t.sort(function(a,b){return b.dateAdded-a.dateAdded;});return t.slice(0,l||50);}); };
-    LibraryManager.prototype.getMostPlayed = function(l) { return db.getAllTracks().then(function(t){t.sort(function(a,b){return(b.playCount||0)-(a.playCount||0);});return t.slice(0,l||50);}); };
-    LibraryManager.prototype.getDuplicates = function() {
-        return db.getAllTracks().then(function(t){var d=[],s={};for(var i=0;i<t.length;i++){var k=(t[i].title||'').toLowerCase()+'|||'+(t[i].artist||'').toLowerCase();if(s[k])d.push({original:s[k],duplicate:t[i]});else s[k]=t[i];}return d;});
+    
+    Library.prototype.getAlbums = function() {
+        return this.getTracks().then(function(tracks) {
+            var albumsMap = {};
+            tracks.forEach(function(track) {
+                if (track.album) {
+                    if (!albumsMap[track.album]) {
+                        albumsMap[track.album] = { name: track.album, artist: track.artist, trackCount: 0 };
+                    }
+                    albumsMap[track.album].trackCount++;
+                }
+            });
+            return Object.values(albumsMap);
+        });
     };
-    LibraryManager.prototype.removeDuplicates = function() {
-        var s=this; return this.getDuplicates().then(function(d){var ps=[],r=[];for(var i=0;i<d.length;i++){(function(dp){ps.push(db.deleteTrack(dp.duplicate.id).then(function(){r.push(dp.duplicate);}));})(d[i]);}return Promise.all(ps).then(function(){return r;});});
+    
+    Library.prototype.getPlaylists = function() {
+        var self = this;
+        return db.getAllPlaylists().then(function(playlists) {
+            self.playlists = playlists;
+            return playlists;
+        });
     };
-    LibraryManager.prototype.exportLibrary = function() { return db.exportLibrary(); };
-    window.library = new LibraryManager();
+    
+    Library.prototype.getPlaylist = function(id) {
+        return this.getPlaylists().then(function(playlists) {
+            return playlists.find(function(p) { return p.id == id; });
+        });
+    };
+    
+    Library.prototype.getPlaylistTracks = function(playlistId) {
+        var self = this;
+        return this.getPlaylist(playlistId).then(function(playlist) {
+            if (!playlist || !playlist.tracks) return [];
+            return self.getTracks().then(function(allTracks) {
+                return allTracks.filter(function(track) {
+                    return playlist.tracks.includes(track.id);
+                });
+            });
+        });
+    };
+    
+    Library.prototype.createPlaylist = function(name, description) {
+        var self = this;
+        var playlist = {
+            id: Date.now().toString(),
+            name: name,
+            description: description || '',
+            tracks: [],
+            createdAt: Date.now()
+        };
+        
+        return db.savePlaylist(playlist).then(function() {
+            self.playlists.push(playlist);
+            return playlist;
+        });
+    };
+    
+    Library.prototype.deletePlaylist = function(id) {
+        var self = this;
+        return db.deletePlaylist(id).then(function() {
+            self.playlists = self.playlists.filter(function(p) { return p.id != id; });
+        });
+    };
+    
+    Library.prototype.addToPlaylist = function(playlistId, trackId) {
+        var self = this;
+        return this.getPlaylist(playlistId).then(function(playlist) {
+            if (playlist && !playlist.tracks.includes(trackId)) {
+                playlist.tracks.push(trackId);
+                return db.savePlaylist(playlist).then(function() {
+                    var index = self.playlists.findIndex(function(p) { return p.id == playlistId; });
+                    if (index !== -1) self.playlists[index] = playlist;
+                });
+            }
+        });
+    };
+    
+    Library.prototype.search = function(query) {
+        return this.getTracks().then(function(tracks) {
+            var lowerQuery = query.toLowerCase();
+            return tracks.filter(function(track) {
+                return (track.title && track.title.toLowerCase().includes(lowerQuery)) ||
+                       (track.artist && track.artist.toLowerCase().includes(lowerQuery));
+            });
+        });
+    };
+    
+    Library.prototype.getStats = function() {
+        var self = this;
+        return Promise.all([this.getTracks(), this.getPlaylists()]).then(function(results) {
+            var tracks = results[0];
+            var playlists = results[1];
+            var totalSize = tracks.reduce(function(sum, t) { return sum + (t.size || 0); }, 0);
+            
+            return {
+                totalTracks: tracks.length,
+                totalPlaylists: playlists.length,
+                storageUsage: totalSize
+            };
+        });
+    };
+    
+    Library.prototype.exportLibrary = function() {
+        var self = this;
+        return Promise.all([this.getTracks(), this.getPlaylists()]).then(function(results) {
+            return JSON.stringify({
+                tracks: results[0],
+                playlists: results[1],
+                exportDate: new Date().toISOString()
+            }, null, 2);
+        });
+    };
+    
+    Library.prototype.getDuplicates = function() {
+        return this.getTracks().then(function(tracks) {
+            var seen = {};
+            var duplicates = [];
+            tracks.forEach(function(track) {
+                var key = (track.title + '_' + track.artist).toLowerCase();
+                if (seen[key]) {
+                    duplicates.push(track);
+                } else {
+                    seen[key] = true;
+                }
+            });
+            return duplicates;
+        });
+    };
+    
+    Library.prototype.removeDuplicates = function() {
+        var self = this;
+        return this.getDuplicates().then(function(duplicates) {
+            return Promise.all(duplicates.map(function(track) {
+                return db.deleteTrack(track.id);
+            })).then(function() {
+                return duplicates;
+            });
+        });
+    };
+    
+    window.library = new Library();
 })();
