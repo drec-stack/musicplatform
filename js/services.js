@@ -1,33 +1,80 @@
 (function() {
     'use strict';
+    
     function ServicesManager() {
-        this.items = {
-            spotify: {id:'spotify',name:'Spotify',color:'#1DB954',connected:false},
-            youtube: {id:'youtube',name:'YouTube Music',color:'#FF0000',connected:false},
-            soundcloud: {id:'soundcloud',name:'SoundCloud',color:'#FF5500',connected:false},
-            deezer: {id:'deezer',name:'Deezer',color:'#00C7F2',connected:true}
-        };
+        this.services = [
+            { id: 'spotify', name: 'Spotify', connected: false, color: '#1DB954' },
+            { id: 'youtube', name: 'YouTube Music', connected: false, color: '#FF0000' },
+            { id: 'soundcloud', name: 'SoundCloud', connected: false, color: '#FF7700' }
+        ];
         this.load();
     }
+    
     ServicesManager.prototype.load = function() {
-        var sa=storage.get('spotify_auth'); if(sa&&sa.accessToken&&sa.expiresAt>Date.now()){this.items.spotify.connected=true;this.items.spotify.accessToken=sa.accessToken;}
-        var yt=storage.get('youtube_config'); if(yt&&yt.apiKey){this.items.youtube.connected=true;this.items.youtube.apiKey=yt.apiKey;}
-        var sc=storage.get('soundcloud_config'); if(sc&&sc.clientId){this.items.soundcloud.connected=true;this.items.soundcloud.clientId=sc.clientId;}
+        var spotifyAuth = storage.get('spotify_auth');
+        if (spotifyAuth && spotifyAuth.accessToken) {
+            this.services[0].connected = true;
+        }
+        
+        var youtubeConfig = storage.get('youtube_config');
+        if (youtubeConfig && youtubeConfig.apiKey) {
+            this.services[1].connected = true;
+        }
     };
-    ServicesManager.prototype.getAll = function() { var r=[]; for(var k in this.items){if(this.items.hasOwnProperty(k))r.push(this.items[k]);} return r; };
-    ServicesManager.prototype.connectSpotify = function(cid) {
-        var rd=window.location.origin+'/callback.html', sc='streaming user-read-email user-read-private user-library-read playlist-read-private', st='', ch='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-        for(var i=0;i<16;i++)st+=ch.charAt(Math.floor(Math.random()*ch.length));
-        storage.set('spotify_auth_state',st);
-        window.location.href='https://accounts.spotify.com/authorize?client_id='+encodeURIComponent(cid)+'&response_type=token&redirect_uri='+encodeURIComponent(rd)+'&scope='+encodeURIComponent(sc)+'&state='+st;
+    
+    ServicesManager.prototype.getAll = function() {
+        return this.services;
     };
-    ServicesManager.prototype.checkSpotifyCallback = function() { var sa=storage.get('spotify_auth'); if(sa&&sa.accessToken&&sa.expiresAt>Date.now()){this.items.spotify.connected=true;this.items.spotify.accessToken=sa.accessToken;return true;} return false; };
-    ServicesManager.prototype.connectYouTube = function(k) { storage.set('youtube_config',{apiKey:k}); this.items.youtube.connected=true; this.items.youtube.apiKey=k; };
-    ServicesManager.prototype.connectSoundCloud = function(c) { storage.set('soundcloud_config',{clientId:c}); this.items.soundcloud.connected=true; this.items.soundcloud.clientId=c; };
-    ServicesManager.prototype.disconnect = function(id) {
-        if(id==='spotify'){storage.remove('spotify_auth');this.items.spotify.connected=false;delete this.items.spotify.accessToken;}
-        if(id==='youtube'){storage.remove('youtube_config');this.items.youtube.connected=false;delete this.items.youtube.apiKey;}
-        if(id==='soundcloud'){storage.remove('soundcloud_config');this.items.soundcloud.connected=false;delete this.items.soundcloud.clientId;}
+    
+    ServicesManager.prototype.connectSpotify = function(clientId) {
+        var redirectUri = window.location.origin + '/callback.html';
+        var scope = 'user-read-private user-read-email playlist-read-private';
+        var authUrl = 'https://accounts.spotify.com/authorize?' +
+            'client_id=' + clientId +
+            '&response_type=token' +
+            '&redirect_uri=' + encodeURIComponent(redirectUri) +
+            '&scope=' + encodeURIComponent(scope);
+        
+        window.location.href = authUrl;
     };
+    
+    ServicesManager.prototype.connectYouTube = function(apiKey) {
+        storage.set('youtube_config', { apiKey: apiKey });
+        this.services[1].connected = true;
+    };
+    
+    ServicesManager.prototype.disconnect = function(serviceId) {
+        if (serviceId === 'spotify') {
+            storage.remove('spotify_auth');
+            this.services[0].connected = false;
+        } else if (serviceId === 'youtube') {
+            storage.remove('youtube_config');
+            this.services[1].connected = false;
+        }
+    };
+    
+    ServicesManager.prototype.checkSpotifyCallback = function() {
+        var hash = window.location.hash.substring(1);
+        if (hash) {
+            var params = {};
+            var pairs = hash.split('&');
+            for (var i = 0; i < pairs.length; i++) {
+                var parts = pairs[i].split('=');
+                params[decodeURIComponent(parts[0])] = decodeURIComponent(parts[1] || '');
+            }
+            if (params.access_token) {
+                var data = {
+                    accessToken: params.access_token,
+                    expiresAt: Date.now() + (parseInt(params.expires_in, 10) * 1000)
+                };
+                storage.set('spotify_auth', data);
+                this.services[0].connected = true;
+                window.location.hash = '';
+                return true;
+            }
+        }
+        return false;
+    };
+    
     window.services = new ServicesManager();
 })();
