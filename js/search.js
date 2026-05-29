@@ -1,68 +1,121 @@
-class SearchManager {
-    constructor() {
-        this.lastQuery = '';
-        this.searchTimeout = null;
-        this.searchCache = new Map();
+(function() {
+    'use strict';
+    
+    function SearchManager() {
+        this.searchHistory = [];
+        this.loadHistory();
     }
-
-    async search(query) {
-        if (!query || query.trim().length < 2) {
-            return null;
-        }
-
-        query = query.trim();
-        this.lastQuery = query;
-
-        const cacheKey = query.toLowerCase();
-        const cached = this.searchCache.get(cacheKey);
-        if (cached && Date.now() - cached.timestamp < 60000) {
-            return cached.results;
-        }
-
-        const activeTokens = services.getActiveServiceTokens();
+    
+    SearchManager.prototype.loadHistory = function() {
+        var saved = storage.get('search_history', []);
+        this.searchHistory = saved.slice(0, 10);
+    };
+    
+    SearchManager.prototype.saveHistory = function() {
+        storage.set('search_history', this.searchHistory);
+    };
+    
+    SearchManager.prototype.addToHistory = function(query) {
+        if (!query || query.trim() === '') return;
         
-        if (Object.keys(activeTokens).length === 0) {
-            return { query, services: {}, isEmpty: true };
-        }
-
-        try {
-            const results = await api.searchAll(query, activeTokens);
+        var index = this.searchHistory.indexOf(query);
+        if (index !== -1) this.searchHistory.splice(index, 1);
+        
+        this.searchHistory.unshift(query);
+        if (this.searchHistory.length > 10) this.searchHistory.pop();
+        this.saveHistory();
+    };
+    
+    SearchManager.prototype.getHistory = function() {
+        return this.searchHistory;
+    };
+    
+    SearchManager.prototype.clearHistory = function() {
+        this.searchHistory = [];
+        this.saveHistory();
+    };
+    
+    SearchManager.prototype.search = function(query, options) {
+        var self = this;
+        options = options || {};
+        
+        return new Promise(function(resolve, reject) {
+            if (!query || query.trim().length < (options.minLength || 2)) {
+                resolve({ tracks: [], artists: [], albums: [], query: query });
+                return;
+            }
             
-            this.searchCache.set(cacheKey, {
-                results,
-                timestamp: Date.now()
-            });
-
-            if (this.searchCache.size > 50) {
-                const firstKey = this.searchCache.keys().next().value;
-                this.searchCache.delete(firstKey);
+            self.addToHistory(query);
+            
+            if (!window.library) {
+                resolve({ tracks: [], artists: [], albums: [], query: query });
+                return;
             }
-
-            return results;
-        } catch (error) {
-            console.error('Search failed:', error);
-            return { query, services: {}, error: true };
-        }
-    }
-
-    getSuggestions(query) {
-        const history = storage.get('play_history', []);
-        if (!query || query.length < 1) return [];
-        
-        const lowerQuery = query.toLowerCase();
-        const suggestions = new Set();
-        
-        history.forEach(track => {
-            if (track.title && track.title.toLowerCase().includes(lowerQuery)) {
-                suggestions.add(track.title);
-            }
-            if (track.artist && track.artist.toLowerCase().includes(lowerQuery)) {
-                suggestions.add(track.artist);
-            }
+            
+            var lowerQuery = query.toLowerCase();
+            
+            Promise.all([
+                library.getTracks(),
+                library.getArtists(),
+                library.getAlbums()
+            ]).then(function(results) {
+                var tracks = results[0];
+                var artists = results[1];
+                var albums = results[2];
+                
+                var matchedTracks = tracks.filter(function(track) {
+                    return (track.title && track.title.toLowerCase().includes(lowerQuery)) ||
+                           (track.artist && track.artist.toLowerCase().includes(lowerQuery)) ||
+                           (track.album && track.album.toLowerCase().includes(lowerQuery));
+                });
+                
+                var matchedArtists = artists.filter(function(artist) {
+                    return artist.name && artist.name.toLowerCase().includes(lowerQuery);
+                });
+                
+                var matchedAlbums = albums.filter(function(album) {
+                    return (album.name && album.name.toLowerCase().includes(lowerQuery)) ||
+                           (album.artist && album.artist.toLowerCase().includes(lowerQuery));
+                });
+                
+                resolve({
+                    tracks: matchedTracks,
+                    artists: matchedArtists,
+                    albums: matchedAlbums,
+                    query: query,
+                    total: matchedTracks.length + matchedArtists.length + matchedAlbums.length
+                });
+            }).catch(reject);
         });
-
-        return Array.from(suggestions).slice(0, 5);
-    }
-}
-
-window.searchManager = new SearchManager();
+    };
+    
+    SearchManager.prototype.searchTracks = function(query, limit) {
+        return this.search(query).then(function(result) {
+            return result.tracks.slice(0, limit || 50);
+        });
+    };
+    
+    SearchManager.prototype.suggest = function(query) {
+        var self = this;
+        return new Promise(function(resolve) {
+            if (!query || query.length < 2) {
+                resolve([]);
+                return;
+            }
+            
+            var suggestions = [];
+            var lowerQuery = query.toLowerCase();
+            
+            // Из истории
+            self.searchHistory.forEach(function(term) {
+                if (term.toLowerCase().startsWith(lowerQuery) && term !== query) {
+                    suggestions.push(term);
+                }
+            });
+            
+            resolve(suggestions.slice(0, 5));
+        });
+    };
+    
+    window.searchManager = new SearchManager();
+})();
