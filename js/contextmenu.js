@@ -10,40 +10,44 @@
         var self = this;
         this.menu = document.createElement('div');
         this.menu.className = 'context-menu';
-        this.menu.style.cssText = 'position:fixed;background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:4px 0;min-width:180px;z-index:1000;box-shadow:0 4px 20px rgba(0,0,0,0.3);display:none;';
+        this.menu.style.cssText = 'position:fixed;background:var(--bg-secondary);border-radius:8px;padding:8px;box-shadow:0 4px 12px rgba(0,0,0,0.3);z-index:2000;display:none;min-width:180px;';
         document.body.appendChild(this.menu);
         
-        document.addEventListener('click', function() { self.hide(); });
+        document.addEventListener('click', function() {
+            self.hide();
+        });
     };
     
     ContextMenu.prototype.show = function(x, y, items) {
         this.hide();
-        this.menu.innerHTML = '';
         
+        var html = '';
         for (var i = 0; i < items.length; i++) {
-            var item = items[i];
-            var menuItem = document.createElement('div');
-            menuItem.className = 'context-menu-item';
-            menuItem.style.cssText = 'padding:8px 16px;cursor:pointer;display:flex;align-items:center;gap:10px;transition:background 0.15s;';
-            menuItem.innerHTML = (item.icon ? '<span style="width:18px;">' + item.icon + '</span>' : '') + '<span>' + item.label + '</span>';
-            
-            menuItem.onmouseenter = function(el) { return function() { el.style.background = 'var(--bg-hover)'; }; }(menuItem);
-            menuItem.onmouseleave = function(el) { return function() { el.style.background = ''; }; }(menuItem);
-            menuItem.onclick = (function(act) {
-                return function(e) {
-                    e.stopPropagation();
-                    act();
-                    this.hide();
-                }.bind(this);
-            }.bind(this))(item.action);
-            
-            this.menu.appendChild(menuItem);
+            html += '<div class="context-menu-item" style="padding:10px 16px;cursor:pointer;transition:background 0.2s;border-radius:4px;" data-action="' + i + '">' + items[i].label + '</div>';
         }
-        
+        this.menu.innerHTML = html;
         this.menu.style.display = 'block';
         this.menu.style.left = x + 'px';
         this.menu.style.top = y + 'px';
         
+        var self = this;
+        this.menu.querySelectorAll('.context-menu-item').forEach(function(item) {
+            item.addEventListener('mouseenter', function() {
+                item.style.background = 'var(--accent)';
+            });
+            item.addEventListener('mouseleave', function() {
+                item.style.background = 'transparent';
+            });
+            item.addEventListener('click', function() {
+                var index = parseInt(item.dataset.action);
+                if (items[index] && items[index].action) {
+                    items[index].action();
+                }
+                self.hide();
+            });
+        });
+        
+        // Проверка выхода за границы экрана
         var rect = this.menu.getBoundingClientRect();
         if (rect.right > window.innerWidth) {
             this.menu.style.left = (window.innerWidth - rect.width - 10) + 'px';
@@ -54,7 +58,9 @@
     };
     
     ContextMenu.prototype.hide = function() {
-        if (this.menu) this.menu.style.display = 'none';
+        if (this.menu) {
+            this.menu.style.display = 'none';
+        }
     };
     
     window.contextMenu = new ContextMenu();
