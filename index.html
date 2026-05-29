@@ -11,6 +11,15 @@
     <link rel="stylesheet" href="css/themes.css">
 </head>
 <body>
+    <!-- Floating Background Balls -->
+    <div class="floating-balls">
+        <div class="floating-ball"></div>
+        <div class="floating-ball"></div>
+        <div class="floating-ball"></div>
+        <div class="floating-ball"></div>
+        <div class="floating-ball"></div>
+    </div>
+
     <!-- Loader -->
     <div id="loader">
         <div class="loader-spinner"></div>
@@ -61,7 +70,7 @@
                             <circle cx="11" cy="11" r="8"/>
                             <line x1="21" y1="21" x2="16.65" y2="16.65"/>
                         </svg>
-                        <input type="text" id="globalSearch" placeholder="Search library..." autocomplete="off">
+                        <input type="text" id="globalSearch" placeholder="Поиск в библиотеке..." autocomplete="off">
                         <span class="search-shortcut">Ctrl+K</span>
                     </div>
                 </div>
@@ -80,15 +89,15 @@
             <div id="content">
                 <div class="loading-container">
                     <div class="loading-spinner"></div>
-                    <span>Loading...</span>
+                    <span>Загрузка...</span>
                 </div>
             </div>
         </main>
         
-        <!-- Player Footer - ОДИН ОБЩИЙ БЛОК -->
+        <!-- Player Footer -->
         <footer id="player">
             <div class="player-container">
-                <!-- Левая секция: Информация о треке -->
+                <!-- Track Info Block -->
                 <div class="player-track-block">
                     <div class="player-cover" id="playerCover">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="26" height="26">
@@ -98,8 +107,8 @@
                         </svg>
                     </div>
                     <div class="player-track-info">
-                        <div class="player-track-title" id="playerTitle">Nothing playing</div>
-                        <div class="player-track-artist" id="playerArtist">Select a track</div>
+                        <div class="player-track-title" id="playerTitle">Ничего не играет</div>
+                        <div class="player-track-artist" id="playerArtist">Выберите трек</div>
                     </div>
                     <button class="player-add-btn" id="playerAddToPlaylistBtn" title="Add to playlist">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
@@ -116,7 +125,7 @@
                     </div>
                 </div>
                 
-                <!-- Центральная секция: Управление воспроизведением -->
+                <!-- Player Controls Block -->
                 <div class="player-controls-block">
                     <div class="player-buttons">
                         <button class="player-btn" id="shuffleBtn" title="Shuffle">🔀</button>
@@ -138,7 +147,7 @@
                     </div>
                 </div>
                 
-                <!-- Правая секция: Громкость -->
+                <!-- Volume Control Block -->
                 <div class="player-volume-block">
                     <button class="player-volume-btn" id="volumeBtn" title="Volume">🔊</button>
                     <input type="range" class="player-volume-slider" id="volumeSlider" min="0" max="100" value="70">
@@ -161,7 +170,7 @@
         if (!window.indexedDB) {
             var loaderError = document.getElementById('loaderError');
             if (loaderError) {
-                loaderError.textContent = 'Your browser does not support IndexedDB. Please use Chrome, Firefox, Safari or Edge.';
+                loaderError.textContent = 'Ваш браузер не поддерживает IndexedDB. Пожалуйста, используйте Chrome, Firefox, Safari или Edge.';
                 loaderError.style.display = 'block';
             }
             document.body.classList.add('error');
