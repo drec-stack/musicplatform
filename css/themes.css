@@ -1,74 +1,67 @@
-/* css/themes.css */
+/* ========================================
+   ТЕМЫ: ТЁМНАЯ (по умолчанию) и СВЕТЛАЯ
+   ======================================== */
+
+/* ТЁМНАЯ ТЕМА (по умолчанию) */
 :root {
-    /* Основная тема (тёмная) */
-    --bg-primary: #0a0a0f;
-    --bg-secondary: #12121a;
-    --bg-tertiary: #1a1a24;
-    
+    --bg-gradient: radial-gradient(ellipse at 20% 30%, #1a1a2e, #0a0a0f);
+    --bg-primary: rgba(10, 10, 15, 0.85);
+    --bg-secondary: rgba(26, 26, 40, 0.7);
+    --bg-tertiary: rgba(35, 35, 50, 0.6);
+    --bg-hover: rgba(55, 55, 75, 0.5);
     --text-primary: #ffffff;
-    --text-secondary: #a0a0b0;
-    --text-muted: #666680;
-    
-    --accent-primary: #6c5ce7;
-    --accent-secondary: #a78bfa;
-    
-    --border-color: rgba(255, 255, 255, 0.08);
-    --glass-bg: rgba(255, 255, 255, 0.03);
-    --glass-hover: rgba(255, 255, 255, 0.06);
-    
-    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
-    --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.3);
-    --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.4);
-    
-    --radius-sm: 8px;
-    --radius-md: 12px;
-    --radius-lg: 16px;
-    --radius-xl: 20px;
-    
-    --transition-fast: 0.15s ease;
-    --transition-base: 0.3s ease;
-    --transition-slow: 0.5s ease;
-    
-    /* Размеры */
-    --sidebar-width: 260px;
-    --topbar-height: 64px;
-    --player-height: 80px;
+    --text-secondary: #b0b0c0;
+    --text-muted: #7a7a8a;
+    --accent: #7c3aed;
+    --accent-hover: #8b5cf6;
+    --accent-glow: rgba(124, 58, 237, 0.4);
+    --accent-gradient: linear-gradient(135deg, #7c3aed, #a78bfa);
+    --glass-border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-/* Сброс стилей */
-*, *::before, *::after {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
+/* СВЕТЛАЯ ТЕМА */
+body.light-theme {
+    --bg-gradient: radial-gradient(ellipse at 20% 30%, #f0f0f5, #e8e8ef);
+    --bg-primary: rgba(245, 245, 250, 0.85);
+    --bg-secondary: rgba(235, 235, 245, 0.7);
+    --bg-tertiary: rgba(255, 255, 255, 0.6);
+    --bg-hover: rgba(220, 220, 235, 0.5);
+    --text-primary: #1a1a2e;
+    --text-secondary: #4a4a5a;
+    --text-muted: #8a8a9a;
+    --accent: #7c3aed;
+    --accent-hover: #6d28d9;
+    --accent-glow: rgba(124, 58, 237, 0.2);
+    --accent-gradient: linear-gradient(135deg, #7c3aed, #a78bfa);
+    --glass-border: 1px solid rgba(0, 0, 0, 0.08);
 }
 
-html, body {
-    height: 100%;
-    overflow: hidden;
+/* Кнопка переключения темы */
+.theme-toggle {
+    position: fixed;
+    bottom: 100px;
+    right: 20px;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--bg-secondary);
+    backdrop-filter: blur(12px);
+    border: var(--glass-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 100;
+    transition: all var(--transition);
 }
 
-body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background: var(--bg-primary);
+.theme-toggle:hover {
+    transform: scale(1.1);
+    background: var(--accent);
+}
+
+.theme-toggle svg {
+    width: 22px;
+    height: 22px;
     color: var(--text-primary);
-    line-height: 1.5;
-    -webkit-font-smoothing: antialiased;
-}
-
-/* Скроллбар */
-::-webkit-scrollbar {
-    width: 6px;
-}
-
-::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.2);
 }
