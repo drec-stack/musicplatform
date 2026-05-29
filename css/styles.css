@@ -1,36 +1,200 @@
 /* ========================================
-   ROOT VARIABLES & RESET
+   РЕАЛИСТИЧНЫЙ ВОДНЫЙ ФОН (как в Яндекс Музыке)
    ======================================== */
-   
-:root {
-    --bg-primary: #0a0a0f;
-    --bg-secondary: rgba(18, 18, 26, 0.8);
-    --bg-tertiary: rgba(26, 26, 36, 0.8);
-    --bg-card: rgba(30, 30, 42, 0.6);
-    --bg-hover: rgba(37, 37, 48, 0.8);
-    --text-primary: #ffffff;
-    --text-secondary: #b3b3b3;
-    --text-tertiary: #7a7a7a;
-    --accent: #1db954;
-    --accent-hover: #1ed760;
-    --accent-glow: rgba(29, 185, 84, 0.3);
-    --accent-gradient: linear-gradient(135deg, #1db954 0%, #1ed760 100%);
-    --danger: #dc3545;
-    --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.1);
-    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.15);
-    --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.2);
-    --transition-fast: 0.15s ease;
-    --transition-base: 0.25s ease;
-    --transition-slow: 0.4s ease;
-    --radius-sm: 4px;
-    --radius-md: 8px;
-    --radius-lg: 12px;
-    --radius-xl: 16px;
-    --radius-full: 9999px;
-    --sidebar-width: 260px;
-    --topbar-height: 64px;
-    --player-height: 90px;
+
+body {
+    background: #0a0a0f;
+    position: relative;
+    overflow-x: hidden;
 }
+
+/* Основной водный градиент */
+.water-bg {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: 
+        radial-gradient(ellipse at 30% 40%, rgba(29, 185, 84, 0.08) 0%, transparent 60%),
+        radial-gradient(ellipse at 70% 60%, rgba(30, 215, 96, 0.06) 0%, transparent 60%),
+        radial-gradient(ellipse at 50% 80%, rgba(29, 185, 84, 0.05) 0%, transparent 70%);
+    z-index: -5;
+}
+
+/* Волны - плавные, как на воде */
+.water-wave {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 100%;
+    pointer-events: none;
+    z-index: -4;
+}
+
+.wave-layer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-repeat: repeat-x;
+    background-position: bottom;
+    pointer-events: none;
+}
+
+/* Слой 1 - самая большая волна */
+.wave-1 {
+    background: repeating-linear-gradient(
+        transparent,
+        transparent 98%,
+        rgba(29, 185, 84, 0.03) 98%,
+        rgba(29, 185, 84, 0.03) 100%
+    );
+    animation: waveMove1 8s ease-in-out infinite;
+}
+
+@keyframes waveMove1 {
+    0%, 100% {
+        transform: translateX(0) translateY(0);
+        background-position: 0% 100%;
+    }
+    25% {
+        transform: translateX(-2%) translateY(-1%);
+        background-position: 10% 100%;
+    }
+    50% {
+        transform: translateX(0%) translateY(-2%);
+        background-position: 20% 100%;
+    }
+    75% {
+        transform: translateX(2%) translateY(-1%);
+        background-position: 10% 100%;
+    }
+}
+
+/* Слой 2 - средняя волна */
+.wave-2 {
+    background: repeating-linear-gradient(
+        transparent,
+        transparent 97%,
+        rgba(30, 215, 96, 0.04) 97%,
+        rgba(30, 215, 96, 0.04) 100%
+    );
+    animation: waveMove2 12s ease-in-out infinite;
+}
+
+@keyframes waveMove2 {
+    0%, 100% {
+        transform: translateX(0) scaleY(1);
+        background-position: 0% 100%;
+    }
+    33% {
+        transform: translateX(-3%) scaleY(1.02);
+        background-position: 15% 100%;
+    }
+    66% {
+        transform: translateX(3%) scaleY(0.98);
+        background-position: 30% 100%;
+    }
+}
+
+/* Слой 3 - мелкая рябь */
+.wave-3 {
+    background: repeating-linear-gradient(
+        transparent,
+        transparent 99%,
+        rgba(29, 185, 84, 0.05) 99%,
+        rgba(29, 185, 84, 0.05) 100%
+    );
+    animation: waveMove3 6s ease-in-out infinite;
+}
+
+@keyframes waveMove3 {
+    0%, 100% {
+        transform: translateX(0);
+        background-position: 0% 100%;
+    }
+    20% {
+        transform: translateX(-1%);
+        background-position: 5% 100%;
+    }
+    40% {
+        transform: translateX(1.5%);
+        background-position: 10% 100%;
+    }
+    60% {
+        transform: translateX(-2%);
+        background-position: 15% 100%;
+    }
+    80% {
+        transform: translateX(2%);
+        background-position: 5% 100%;
+    }
+}
+
+/* Плавные водные блики */
+.water-glow {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: 
+        radial-gradient(circle at 20% 30%, rgba(29, 185, 84, 0.15) 0%, transparent 40%),
+        radial-gradient(circle at 80% 50%, rgba(30, 215, 96, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 40% 70%, rgba(29, 185, 84, 0.08) 0%, transparent 60%),
+        radial-gradient(circle at 60% 20%, rgba(30, 215, 96, 0.12) 0%, transparent 50%);
+    z-index: -3;
+    animation: glowPulse 10s ease-in-out infinite;
+    pointer-events: none;
+}
+
+@keyframes glowPulse {
+    0%, 100% {
+        opacity: 0.5;
+    }
+    50% {
+        opacity: 0.8;
+    }
+}
+
+/* Плавающие световые точки (отражения на воде) */
+.water-sparkles {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: -2;
+    pointer-events: none;
+}
+
+.sparkle {
+    position: absolute;
+    width: 2px;
+    height: 2px;
+    background: rgba(29, 185, 84, 0.6);
+    border-radius: 50%;
+    filter: blur(1px);
+    animation: sparkleFloat 6s ease-in-out infinite;
+}
+
+@keyframes sparkleFloat {
+    0%, 100% {
+        opacity: 0;
+        transform: translateY(0) scale(1);
+    }
+    50% {
+        opacity: 0.8;
+        transform: translateY(-20px) scale(1.5);
+    }
+}
+
+/* ========================================
+   ОСНОВНЫЕ СТИЛИ
+   ======================================== */
 
 * {
     margin: 0;
@@ -40,245 +204,35 @@
 
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', sans-serif;
-    color: var(--text-primary);
+    color: #ffffff;
     overflow: hidden;
     height: 100vh;
     width: 100vw;
     position: fixed;
     top: 0;
     left: 0;
-    background: #0a0a0f;
 }
 
-/* ========================================
-   ХАОТИЧНЫЙ ВОЛНООБРАЗНЫЙ ФОН
-   ======================================== */
-
-/* Основной градиентный фон с пульсацией */
-.gradient-bg {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: 
-        radial-gradient(ellipse at 20% 40%, rgba(29, 185, 84, 0.12) 0%, transparent 50%),
-        radial-gradient(ellipse at 80% 60%, rgba(30, 215, 96, 0.08) 0%, transparent 50%),
-        radial-gradient(ellipse at 40% 80%, rgba(29, 185, 84, 0.06) 0%, transparent 50%),
-        radial-gradient(ellipse at 60% 20%, rgba(30, 215, 96, 0.1) 0%, transparent 50%),
-        radial-gradient(circle at 50% 50%, rgba(29, 185, 84, 0.04) 0%, transparent 80%);
-    z-index: -5;
-    animation: breathGradient 10s ease-in-out infinite;
-}
-
-@keyframes breathGradient {
-    0%, 100% { opacity: 0.6; }
-    50% { opacity: 1; }
-}
-
-/* Контейнер для всех волн */
-.waves-container {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    overflow: hidden;
-    z-index: -4;
-    pointer-events: none;
-}
-
-/* Волна 1 - медленная, огромная, плавная */
-.wave-1 {
-    position: absolute;
-    bottom: -30%;
-    left: -20%;
-    width: 140%;
-    height: 100%;
-    background: radial-gradient(ellipse at 30% 50%, rgba(29, 185, 84, 0.15), transparent 70%);
-    border-radius: 50%;
-    filter: blur(60px);
-    animation: waveFloat1 20s ease-in-out infinite;
-}
-
-@keyframes waveFloat1 {
-    0% { transform: translate(0%, 0%) scale(1); opacity: 0.3; }
-    25% { transform: translate(8%, -10%) scale(1.15); opacity: 0.5; }
-    50% { transform: translate(-5%, 8%) scale(0.85); opacity: 0.2; }
-    75% { transform: translate(12%, -5%) scale(1.08); opacity: 0.4; }
-    100% { transform: translate(0%, 0%) scale(1); opacity: 0.3; }
-}
-
-/* Волна 2 - быстрая, диагональная */
-.wave-2 {
-    position: absolute;
-    top: -40%;
-    right: -30%;
-    width: 120%;
-    height: 120%;
-    background: radial-gradient(ellipse at 70% 30%, rgba(30, 215, 96, 0.12), transparent 70%);
-    border-radius: 50%;
-    filter: blur(70px);
-    animation: waveFloat2 12s ease-in-out infinite;
-}
-
-@keyframes waveFloat2 {
-    0% { transform: translate(0%, 0%) rotate(0deg) scale(1); opacity: 0.25; }
-    33% { transform: translate(-15%, 12%) rotate(8deg) scale(1.2); opacity: 0.45; }
-    66% { transform: translate(8%, -18%) rotate(-5deg) scale(0.8); opacity: 0.15; }
-    100% { transform: translate(0%, 0%) rotate(0deg) scale(1); opacity: 0.25; }
-}
-
-/* Волна 3 - средняя, хаотичная */
-.wave-3 {
-    position: absolute;
-    bottom: -20%;
-    right: -15%;
-    width: 130%;
-    height: 90%;
-    background: radial-gradient(ellipse at 50% 60%, rgba(29, 185, 84, 0.1), transparent 70%);
-    border-radius: 50%;
-    filter: blur(50px);
-    animation: waveFloat3 18s ease-in-out infinite;
-}
-
-@keyframes waveFloat3 {
-    0% { transform: translate(0%, 0%) scale(1); opacity: 0.2; }
-    20% { transform: translate(-10%, -8%) scale(1.1); opacity: 0.35; }
-    40% { transform: translate(8%, 15%) scale(0.9); opacity: 0.25; }
-    60% { transform: translate(-12%, -5%) scale(1.05); opacity: 0.3; }
-    80% { transform: translate(5%, 12%) scale(0.95); opacity: 0.2; }
-    100% { transform: translate(0%, 0%) scale(1); opacity: 0.2; }
-}
-
-/* Волна 4 - быстрая, спиральная */
-.wave-4 {
-    position: absolute;
-    top: 20%;
-    left: -25%;
-    width: 100%;
-    height: 100%;
-    background: radial-gradient(ellipse at 40% 40%, rgba(30, 215, 96, 0.08), transparent 70%);
-    border-radius: 50%;
-    filter: blur(55px);
-    animation: waveFloat4 14s ease-in-out infinite;
-}
-
-@keyframes waveFloat4 {
-    0% { transform: translate(0%, 0%) scale(1); opacity: 0.2; }
-    25% { transform: translate(18%, -12%) scale(1.12); opacity: 0.4; }
-    50% { transform: translate(-12%, 18%) scale(0.88); opacity: 0.15; }
-    75% { transform: translate(8%, -20%) scale(1.08); opacity: 0.35; }
-    100% { transform: translate(0%, 0%) scale(1); opacity: 0.2; }
-}
-
-/* Волна 5 - очень медленная, гигантская */
-.wave-5 {
-    position: absolute;
-    top: -60%;
-    left: -60%;
-    width: 220%;
-    height: 220%;
-    background: radial-gradient(circle at 50% 50%, rgba(29, 185, 84, 0.06), transparent 80%);
-    border-radius: 50%;
-    filter: blur(100px);
-    animation: waveFloat5 35s ease-in-out infinite;
-}
-
-@keyframes waveFloat5 {
-    0% { transform: translate(0%, 0%) rotate(0deg); opacity: 0.1; }
-    33% { transform: translate(6%, -6%) rotate(6deg); opacity: 0.2; }
-    66% { transform: translate(-10%, 10%) rotate(-10deg); opacity: 0.08; }
-    100% { transform: translate(0%, 0%) rotate(0deg); opacity: 0.1; }
-}
-
-/* Волна 6 - быстрая, маленькая, рябь */
-.wave-6 {
-    position: absolute;
-    bottom: 10%;
-    left: 10%;
-    width: 60%;
-    height: 60%;
-    background: radial-gradient(ellipse at 50% 50%, rgba(30, 215, 96, 0.1), transparent 70%);
-    border-radius: 50%;
-    filter: blur(30px);
-    animation: waveFloat6 8s ease-in-out infinite;
-}
-
-@keyframes waveFloat6 {
-    0% { transform: translate(0%, 0%) scale(1); opacity: 0.15; }
-    30% { transform: translate(-8%, 6%) scale(1.08); opacity: 0.3; }
-    60% { transform: translate(10%, -12%) scale(0.92); opacity: 0.1; }
-    100% { transform: translate(0%, 0%) scale(1); opacity: 0.15; }
-}
-
-/* Плавающие частицы */
-.particles {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: -3;
-    pointer-events: none;
-}
-
-.particle {
-    position: absolute;
-    background: radial-gradient(circle, rgba(29, 185, 84, 0.4), rgba(29, 185, 84, 0));
-    border-radius: 50%;
-    filter: blur(5px);
-    animation: particleFloat var(--duration, 10s) ease-in-out infinite;
-    width: var(--size, 4px);
-    height: var(--size, 4px);
-    opacity: 0;
-}
-
-@keyframes particleFloat {
-    0% {
-        transform: translate(0, 0) scale(1);
-        opacity: 0;
-    }
-    20% {
-        opacity: 0.4;
-    }
-    80% {
-        opacity: 0.4;
-    }
-    100% {
-        transform: translate(var(--x, 100px), var(--y, -100px)) scale(0);
-        opacity: 0;
-    }
-}
-
-/* ========================================
-   SCROLLBAR
-   ======================================== */
-
+/* Стилизация скролла */
 ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: var(--radius-full);
+    background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
     background: rgba(29, 185, 84, 0.3);
-    border-radius: var(--radius-full);
-    transition: background 0.2s ease;
+    border-radius: 10px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
     background: rgba(29, 185, 84, 0.6);
 }
 
-/* ========================================
-   LOADER
-   ======================================== */
-
+/* Loader */
 #loader {
     position: fixed;
     top: 0;
@@ -300,10 +254,10 @@ body {
 }
 
 .loader-spinner {
-    width: 60px;
-    height: 60px;
-    border: 3px solid rgba(29, 185, 84, 0.2);
-    border-top-color: var(--accent);
+    width: 50px;
+    height: 50px;
+    border: 2px solid rgba(29, 185, 84, 0.2);
+    border-top-color: #1db954;
     border-radius: 50%;
     animation: spin 1s linear infinite;
 }
@@ -314,15 +268,20 @@ body {
 
 .loader-text {
     margin-top: 20px;
-    color: var(--text-secondary);
+    color: #b3b3b3;
     font-size: 14px;
-    letter-spacing: 1px;
 }
 
-/* ========================================
-   APP LAYOUT
-   ======================================== */
+.loader-error {
+    display: none;
+    margin-top: 20px;
+    color: #dc3545;
+    text-align: center;
+    max-width: 400px;
+    padding: 20px;
+}
 
+/* App Layout */
 #app {
     display: flex;
     position: fixed;
@@ -330,10 +289,8 @@ body {
     left: 0;
     right: 0;
     bottom: 0;
-    height: 100vh;
-    width: 100%;
     opacity: 0;
-    transition: opacity 0.3s ease;
+    transition: opacity 0.5s ease;
 }
 
 #app:not(.hidden) {
@@ -344,28 +301,20 @@ body {
     display: none !important;
 }
 
-/* ========================================
-   SIDEBAR
-   ======================================== */
-
+/* Sidebar */
 #sidebar {
-    width: var(--sidebar-width);
-    background: rgba(18, 18, 26, 0.7);
+    width: 260px;
+    background: rgba(10, 10, 15, 0.6);
     backdrop-filter: blur(20px);
     display: flex;
     flex-direction: column;
-    overflow-y: auto;
-    overflow-x: hidden;
     border-right: 1px solid rgba(255, 255, 255, 0.05);
-    position: relative;
-    flex-shrink: 0;
     height: 100vh;
 }
 
 .sidebar-header {
     padding: 24px 20px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-    flex-shrink: 0;
 }
 
 .sidebar-logo {
@@ -374,15 +323,15 @@ body {
     gap: 12px;
     font-size: 20px;
     font-weight: bold;
-    background: var(--accent-gradient);
+    background: linear-gradient(135deg, #1db954 0%, #1ed760 100%);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
 }
 
 .sidebar-logo svg {
-    color: var(--accent);
-    stroke: var(--accent);
+    color: #1db954;
+    stroke: #1db954;
 }
 
 .sidebar-nav {
@@ -396,10 +345,9 @@ body {
     align-items: center;
     gap: 14px;
     padding: 12px 16px;
-    color: var(--text-secondary);
-    text-decoration: none;
-    border-radius: var(--radius-md);
-    transition: all var(--transition-base);
+    color: #b3b3b3;
+    border-radius: 8px;
+    transition: all 0.2s ease;
     cursor: pointer;
     font-weight: 500;
     font-size: 14px;
@@ -407,14 +355,13 @@ body {
 
 .nav-item:hover {
     background: rgba(255, 255, 255, 0.05);
-    color: var(--text-primary);
+    color: #ffffff;
     transform: translateX(4px);
 }
 
 .nav-item.active {
-    background: var(--accent-gradient);
+    background: linear-gradient(135deg, #1db954 0%, #1ed760 100%);
     color: white;
-    box-shadow: var(--shadow-md);
 }
 
 .nav-item.active svg {
@@ -423,23 +370,16 @@ body {
 
 .nav-item svg {
     flex-shrink: 0;
-    transition: transform var(--transition-fast);
-}
-
-.nav-item:hover svg {
-    transform: scale(1.05);
 }
 
 .sidebar-divider {
     height: 1px;
     background: rgba(255, 255, 255, 0.05);
     margin: 16px 20px;
-    flex-shrink: 0;
 }
 
 .sidebar-section {
     padding: 0 20px 20px;
-    flex-shrink: 0;
 }
 
 .sidebar-section-title {
@@ -447,7 +387,7 @@ body {
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 1px;
-    color: var(--text-tertiary);
+    color: #7a7a7a;
     margin-bottom: 12px;
 }
 
@@ -460,26 +400,20 @@ body {
 .sidebar-stat {
     background: rgba(255, 255, 255, 0.05);
     padding: 12px;
-    border-radius: var(--radius-md);
+    border-radius: 8px;
     text-align: center;
-    transition: transform var(--transition-fast);
-}
-
-.sidebar-stat:hover {
-    transform: translateY(-2px);
-    background: rgba(29, 185, 84, 0.1);
 }
 
 .stat-value {
     display: block;
     font-size: 20px;
     font-weight: bold;
-    color: var(--accent);
+    color: #1db954;
 }
 
 .stat-label {
     font-size: 11px;
-    color: var(--text-tertiary);
+    color: #7a7a7a;
     margin-top: 4px;
 }
 
@@ -487,45 +421,31 @@ body {
     padding: 20px;
     border-top: 1px solid rgba(255, 255, 255, 0.05);
     margin-top: auto;
-    flex-shrink: 0;
 }
 
-/* ========================================
-   MAIN CONTENT
-   ======================================== */
-
+/* Main Content */
 #main {
     flex: 1;
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    position: relative;
-    height: 100vh;
 }
 
-/* ========================================
-   TOPBAR
-   ======================================== */
-
+/* Topbar */
 #topbar {
-    height: var(--topbar-height);
-    min-height: var(--topbar-height);
-    background: rgba(10, 10, 15, 0.6);
+    height: 64px;
+    background: rgba(10, 10, 15, 0.4);
     backdrop-filter: blur(20px);
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: 0 32px;
-    position: relative;
-    flex-shrink: 0;
-    z-index: 10;
 }
 
 .search-container {
     flex: 1;
     max-width: 400px;
-    position: relative;
 }
 
 .search-input-wrapper {
@@ -537,37 +457,35 @@ body {
 .search-input-wrapper svg {
     position: absolute;
     left: 14px;
-    color: var(--text-tertiary);
-    pointer-events: none;
+    color: #7a7a7a;
 }
 
 #globalSearch {
     width: 100%;
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    color: var(--text-primary);
+    color: #ffffff;
     padding: 10px 40px 10px 42px;
-    border-radius: var(--radius-full);
+    border-radius: 9999px;
     font-size: 14px;
-    transition: all var(--transition-base);
+    transition: all 0.2s ease;
 }
 
 #globalSearch:focus {
     outline: none;
-    border-color: var(--accent);
+    border-color: #1db954;
     background: rgba(0, 0, 0, 0.3);
-    box-shadow: 0 0 0 3px var(--accent-glow);
+    box-shadow: 0 0 0 3px rgba(29, 185, 84, 0.1);
 }
 
 .search-shortcut {
     position: absolute;
     right: 14px;
-    color: var(--text-tertiary);
+    color: #7a7a7a;
     font-size: 12px;
     background: rgba(255, 255, 255, 0.05);
     padding: 2px 8px;
-    border-radius: var(--radius-sm);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
 }
 
 .topbar-actions {
@@ -578,7 +496,7 @@ body {
 .btn-icon {
     background: rgba(255, 255, 255, 0.05);
     border: none;
-    color: var(--text-secondary);
+    color: #b3b3b3;
     width: 36px;
     height: 36px;
     border-radius: 50%;
@@ -586,31 +504,24 @@ body {
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: all var(--transition-base);
+    transition: all 0.2s ease;
 }
 
 .btn-icon:hover {
-    background: var(--accent);
+    background: #1db954;
     color: white;
     transform: scale(1.05);
 }
 
-/* ========================================
-   CONTENT AREA
-   ======================================== */
-
+/* Content Area */
 #content {
     flex: 1;
     overflow-y: auto;
     overflow-x: hidden;
     padding: 32px;
-    position: relative;
 }
 
-/* ========================================
-   PAGES & CONTENT STYLES
-   ======================================== */
-
+/* Pages */
 .page {
     animation: fadeIn 0.4s ease;
 }
@@ -627,19 +538,19 @@ body {
 .page-title {
     font-size: 32px;
     font-weight: bold;
-    background: linear-gradient(135deg, #fff 0%, var(--accent) 100%);
+    background: linear-gradient(135deg, #fff 0%, #1db954 100%);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
 }
 
 .page-subtitle {
-    color: var(--text-secondary);
+    color: #b3b3b3;
     font-size: 14px;
     margin-top: 8px;
 }
 
-/* Quick Actions Grid */
+/* Quick Actions */
 .quick-actions {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
@@ -648,24 +559,24 @@ body {
 }
 
 .action-card {
-    background: rgba(30, 30, 42, 0.7);
+    background: rgba(30, 30, 42, 0.5);
     backdrop-filter: blur(10px);
     padding: 24px;
-    border-radius: var(--radius-lg);
+    border-radius: 12px;
     text-align: center;
     cursor: pointer;
-    transition: all var(--transition-base);
+    transition: all 0.25s ease;
     border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .action-card:hover {
     transform: translateY(-6px);
     background: rgba(29, 185, 84, 0.15);
-    border-color: var(--accent);
-    box-shadow: 0 8px 32px rgba(29, 185, 84, 0.2);
+    border-color: #1db954;
+    box-shadow: 0 8px 32px rgba(29, 185, 84, 0.15);
 }
 
-.action-card .action-icon {
+.action-icon {
     font-size: 32px;
     margin-bottom: 12px;
     display: block;
@@ -694,14 +605,14 @@ body {
 }
 
 .section-link {
-    color: var(--text-tertiary);
+    color: #7a7a7a;
     font-size: 13px;
     cursor: pointer;
     transition: color 0.2s ease;
 }
 
 .section-link:hover {
-    color: var(--accent);
+    color: #1db954;
 }
 
 /* Grid layouts */
@@ -712,34 +623,34 @@ body {
 }
 
 .playlist-card, .album-card, .artist-card {
-    background: rgba(30, 30, 42, 0.6);
+    background: rgba(30, 30, 42, 0.5);
     backdrop-filter: blur(10px);
     padding: 20px;
-    border-radius: var(--radius-lg);
+    border-radius: 12px;
     text-align: center;
     cursor: pointer;
-    transition: all var(--transition-base);
+    transition: all 0.25s ease;
     border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .playlist-card:hover, .album-card:hover, .artist-card:hover {
     transform: translateY(-6px);
     background: rgba(29, 185, 84, 0.15);
-    border-color: var(--accent);
-    box-shadow: 0 8px 32px rgba(29, 185, 84, 0.15);
+    border-color: #1db954;
+    box-shadow: 0 8px 32px rgba(29, 185, 84, 0.1);
 }
 
 .playlist-card-cover, .album-card-cover, .artist-card-avatar {
     width: 100%;
     aspect-ratio: 1;
     background: linear-gradient(135deg, rgba(29, 185, 84, 0.2), rgba(30, 215, 96, 0.1));
-    border-radius: var(--radius-md);
+    border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
     margin-bottom: 16px;
     font-size: 48px;
-    transition: transform var(--transition-base);
+    transition: transform 0.2s ease;
 }
 
 .playlist-card:hover .playlist-card-cover,
@@ -758,7 +669,7 @@ body {
 
 .playlist-card-count, .album-card-artist, .artist-card-info {
     font-size: 12px;
-    color: var(--text-tertiary);
+    color: #7a7a7a;
 }
 
 /* Tabs */
@@ -772,21 +683,21 @@ body {
 .tab {
     background: none;
     border: none;
-    color: var(--text-secondary);
+    color: #b3b3b3;
     padding: 12px 20px;
     cursor: pointer;
     font-size: 14px;
     font-weight: 500;
     position: relative;
-    transition: color var(--transition-base);
+    transition: color 0.2s ease;
 }
 
 .tab:hover {
-    color: var(--text-primary);
+    color: #ffffff;
 }
 
 .tab.active {
-    color: var(--accent);
+    color: #1db954;
 }
 
 .tab.active::after {
@@ -796,7 +707,7 @@ body {
     left: 0;
     right: 0;
     height: 2px;
-    background: var(--accent);
+    background: #1db954;
     animation: slideIn 0.3s ease;
 }
 
@@ -818,22 +729,22 @@ body {
     align-items: center;
     gap: 16px;
     padding: 12px 16px;
-    background: rgba(30, 30, 42, 0.5);
+    background: rgba(30, 30, 42, 0.4);
     backdrop-filter: blur(5px);
-    border-radius: var(--radius-md);
+    border-radius: 8px;
     cursor: pointer;
-    transition: all var(--transition-base);
+    transition: all 0.2s ease;
     border: 1px solid rgba(255, 255, 255, 0.03);
 }
 
 .track-row:hover {
-    background: rgba(37, 37, 48, 0.7);
+    background: rgba(37, 37, 48, 0.6);
     transform: translateX(4px);
     border-color: rgba(29, 185, 84, 0.3);
 }
 
 .track-row-index {
-    color: var(--text-tertiary);
+    color: #7a7a7a;
     font-size: 14px;
     text-align: center;
 }
@@ -848,7 +759,7 @@ body {
     width: 40px;
     height: 40px;
     background: rgba(255, 255, 255, 0.05);
-    border-radius: var(--radius-md);
+    border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -862,12 +773,12 @@ body {
 
 .track-row-artist {
     font-size: 12px;
-    color: var(--text-tertiary);
+    color: #7a7a7a;
 }
 
 .track-row-source, .track-row-duration {
     font-size: 12px;
-    color: var(--text-tertiary);
+    color: #7a7a7a;
     text-align: center;
 }
 
@@ -885,16 +796,16 @@ body {
 /* Upload Area */
 .upload-area {
     border: 2px dashed rgba(255, 255, 255, 0.2);
-    border-radius: var(--radius-lg);
+    border-radius: 12px;
     padding: 60px;
     text-align: center;
-    transition: all var(--transition-base);
+    transition: all 0.25s ease;
     cursor: pointer;
     background: rgba(30, 30, 42, 0.3);
 }
 
 .upload-area:hover, .upload-area.dragover {
-    border-color: var(--accent);
+    border-color: #1db954;
     background: rgba(29, 185, 84, 0.1);
     transform: scale(1.02);
 }
@@ -908,7 +819,7 @@ body {
 .empty-state {
     text-align: center;
     padding: 60px 20px;
-    color: var(--text-tertiary);
+    color: #7a7a7a;
 }
 
 .empty-state-icon {
@@ -920,14 +831,10 @@ body {
 .empty-state p {
     font-size: 18px;
     margin-bottom: 8px;
-    color: var(--text-secondary);
+    color: #b3b3b3;
 }
 
-.empty-state span {
-    font-size: 14px;
-}
-
-/* Loading */
+/* Loading Container */
 .loading-container {
     text-align: center;
     padding: 60px 20px;
@@ -936,8 +843,8 @@ body {
 .loading-spinner {
     width: 40px;
     height: 40px;
-    border: 3px solid rgba(29, 185, 84, 0.2);
-    border-top-color: var(--accent);
+    border: 2px solid rgba(29, 185, 84, 0.2);
+    border-top-color: #1db954;
     border-radius: 50%;
     animation: spin 1s linear infinite;
     margin: 0 auto 16px;
@@ -947,26 +854,26 @@ body {
 .btn {
     padding: 10px 20px;
     border: none;
-    border-radius: var(--radius-full);
+    border-radius: 9999px;
     font-size: 14px;
     font-weight: 500;
     cursor: pointer;
-    transition: all var(--transition-base);
+    transition: all 0.2s ease;
 }
 
 .btn-primary {
-    background: var(--accent-gradient);
+    background: linear-gradient(135deg, #1db954 0%, #1ed760 100%);
     color: white;
 }
 
 .btn-primary:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px var(--accent-glow);
+    box-shadow: 0 4px 12px rgba(29, 185, 84, 0.3);
 }
 
 .btn-secondary {
     background: rgba(255, 255, 255, 0.1);
-    color: var(--text-primary);
+    color: #ffffff;
 }
 
 .btn-secondary:hover {
@@ -975,7 +882,7 @@ body {
 }
 
 .btn-danger {
-    background: var(--danger);
+    background: #dc3545;
     color: white;
 }
 
@@ -986,10 +893,6 @@ body {
 .btn-sm {
     padding: 6px 12px;
     font-size: 12px;
-}
-
-.mt-4 {
-    margin-top: 16px;
 }
 
 /* Modal */
@@ -1014,7 +917,7 @@ body {
 .modal-content {
     background: rgba(18, 18, 26, 0.95);
     backdrop-filter: blur(20px);
-    border-radius: var(--radius-xl);
+    border-radius: 16px;
     max-width: 500px;
     width: 90%;
     max-height: 80vh;
@@ -1040,12 +943,12 @@ body {
 .modal-close {
     font-size: 28px;
     cursor: pointer;
-    color: var(--text-tertiary);
+    color: #7a7a7a;
     transition: color 0.2s ease;
 }
 
 .modal-close:hover {
-    color: var(--danger);
+    color: #dc3545;
 }
 
 .form-group {
@@ -1063,28 +966,28 @@ body {
     width: 100%;
     background: rgba(255, 255, 255, 0.1);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    color: var(--text-primary);
+    color: #ffffff;
     padding: 10px 12px;
-    border-radius: var(--radius-md);
+    border-radius: 8px;
     font-size: 14px;
 }
 
 .form-input:focus {
     outline: none;
-    border-color: var(--accent);
+    border-color: #1db954;
 }
 
 .playlist-option {
     padding: 12px;
     background: rgba(255, 255, 255, 0.05);
-    border-radius: var(--radius-md);
+    border-radius: 8px;
     margin-bottom: 8px;
     cursor: pointer;
-    transition: all var(--transition-base);
+    transition: all 0.2s ease;
 }
 
 .playlist-option:hover {
-    background: var(--accent);
+    background: #1db954;
     transform: translateX(4px);
 }
 
@@ -1103,11 +1006,11 @@ body {
     background: rgba(18, 18, 26, 0.95);
     backdrop-filter: blur(20px);
     padding: 12px 20px;
-    border-radius: var(--radius-md);
-    box-shadow: var(--shadow-lg);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     font-size: 14px;
     animation: slideIn 0.3s ease;
-    border-left: 3px solid var(--accent);
+    border-left: 3px solid #1db954;
 }
 
 @keyframes slideIn {
@@ -1130,7 +1033,7 @@ body {
     font-size: 18px;
     font-weight: 600;
     margin-bottom: 16px;
-    color: var(--text-secondary);
+    color: #b3b3b3;
 }
 
 .data-actions {
@@ -1140,15 +1043,15 @@ body {
 }
 
 .text-muted {
-    color: var(--text-tertiary);
+    color: #7a7a7a;
+}
+
+.mt-4 {
+    margin-top: 16px;
 }
 
 /* Responsive */
 @media (max-width: 768px) {
-    :root {
-        --sidebar-width: 200px;
-    }
-    
     .playlist-grid, .album-grid, .artist-grid {
         grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
         gap: 16px;
