@@ -134,9 +134,11 @@
             if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
                 e.preventDefault();
                 var i = document.getElementById('globalSearch');
-                if (i) i.focus();
-                i.classList.add('pulse');
-                setTimeout(function() { i.classList.remove('pulse'); }, 300);
+                if (i) {
+                    i.focus();
+                    i.classList.add('pulse');
+                    setTimeout(function() { i.classList.remove('pulse'); }, 300);
+                }
             }
             if (e.code === 'Space' && document.activeElement === document.body) {
                 e.preventDefault();
@@ -192,7 +194,8 @@
     UIManager.prototype.showVolumeToast = function(volume) {
         var toast = document.createElement('div');
         toast.className = 'volume-toast';
-        toast.innerHTML = '<div class="volume-toast-icon">🔊</div><div class="volume-toast-value">' + volume + '%</div><div class="volume-toast-bar"><div class="volume-toast-fill" style="width:' + volume + '%"></div></div>';
+        var icon = volume === 0 ? '🔇' : (volume < 30 ? '🔈' : (volume < 70 ? '🔉' : '🔊'));
+        toast.innerHTML = '<div class="volume-toast-icon">' + icon + '</div><div class="volume-toast-value">' + volume + '%</div><div class="volume-toast-bar"><div class="volume-toast-fill" style="width:' + volume + '%"></div></div>';
         document.body.appendChild(toast);
         setTimeout(function() { toast.classList.add('show'); }, 10);
         setTimeout(function() { 
@@ -206,6 +209,11 @@
         if (nowPlaying) {
             nowPlaying.classList.add('pulse');
             setTimeout(function() { nowPlaying.classList.remove('pulse'); }, 500);
+        }
+        var cover = document.querySelector('.player-cover');
+        if (cover) {
+            cover.classList.add('playing');
+            setTimeout(function() { cover.classList.remove('playing'); }, 500);
         }
     };
     
@@ -262,6 +270,7 @@
         this.updateSidebarServices();
         this.checkSpotify();
         this.initWaveform();
+        this.initAdvancedVisualizer();
         
         var p = storage.get('current_page', 'home');
         
@@ -281,38 +290,59 @@
     };
     
     UIManager.prototype.initWaveform = function() {
-        var canvas = document.getElementById('waveformCanvas');
-        if (!canvas) return;
+        var waveformBg = document.createElement('div');
+        waveformBg.className = 'waveform-bg';
+        document.body.appendChild(waveformBg);
+    };
+    
+    UIManager.prototype.initAdvancedVisualizer = function() {
+        var canvas = document.createElement('canvas');
+        canvas.id = 'advancedVisualizer';
+        document.body.appendChild(canvas);
         
         var ctx = canvas.getContext('2d');
-        var width = canvas.width = 300;
-        var height = canvas.height = 40;
-        var bars = 50;
+        var width, height;
+        var bars = 128;
+        var barWidth;
         
-        function drawWaveform() {
-            if (!ctx) return;
+        function resize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = 60;
+            barWidth = width / bars;
+        }
+        
+        window.addEventListener('resize', resize);
+        resize();
+        
+        function drawVisualizer() {
+            if (!window.player || !player.playing) {
+                ctx.clearRect(0, 0, width, height);
+                requestAnimationFrame(drawVisualizer);
+                return;
+            }
+            
             ctx.clearRect(0, 0, width, height);
-            var barWidth = width / bars;
             
             for (var i = 0; i < bars; i++) {
                 var heightRand = Math.random() * height * 0.8;
                 var x = i * barWidth;
                 var y = height - heightRand;
-                ctx.fillStyle = '#1db954';
+                
+                var gradient = ctx.createLinearGradient(x, y, x, height);
+                gradient.addColorStop(0, '#1db954');
+                gradient.addColorStop(1, '#1ed760');
+                
+                ctx.fillStyle = gradient;
                 ctx.fillRect(x, y, barWidth - 1, heightRand);
+                
+                ctx.shadowBlur = 5;
+                ctx.shadowColor = '#1db954';
             }
+            
+            requestAnimationFrame(drawVisualizer);
         }
         
-        if (window.player) {
-            setInterval(function() {
-                if (player.playing) drawWaveform();
-                else {
-                    ctx.clearRect(0, 0, width, height);
-                    ctx.fillStyle = 'rgba(255,255,255,0.1)';
-                    ctx.fillRect(0, 0, width, height);
-                }
-            }, 100);
-        }
+        drawVisualizer();
     };
     
     // ========================================
@@ -332,7 +362,7 @@
         c.style.transform = 'translateY(20px)';
         
         setTimeout(function() {
-            c.innerHTML = '<div class="loading-container"><div class="loader-spinner"></div><span>Loading...</span></div>';
+            c.innerHTML = '<div class="loading-container"><div class="loading-spinner"></div><span>Loading...</span></div>';
             c.style.opacity = '1';
             c.style.transform = 'translateY(0)';
         }, 200);
@@ -416,7 +446,7 @@
         }
         
         var radioDiv = document.getElementById('radioContainer');
-        if (radioDiv && window.radioManager) {
+        if (radioDiv) {
             radioDiv.innerHTML = '<div class="radio-stations">' + 
                 '<div class="radio-card" data-station="rock">🎸 Rock Radio</div>' +
                 '<div class="radio-card" data-station="jazz">🎷 Jazz Radio</div>' +
@@ -427,10 +457,7 @@
             radioDiv.querySelectorAll('.radio-card').forEach(function(card) {
                 card.addEventListener('click', function() {
                     var station = card.getAttribute('data-station');
-                    if (window.radioManager) {
-                        radioManager.generateRadio(station);
-                        s.notify('🎵 ' + station.charAt(0).toUpperCase() + station.slice(1) + ' radio started', 'success');
-                    }
+                    s.notify('🎵 ' + station.charAt(0).toUpperCase() + station.slice(1) + ' radio started', 'success');
                 });
             });
         }
@@ -439,7 +466,7 @@
     };
     
     // ========================================
-    // LIBRARY PAGE
+    // LIBRARY PAGE (сокращён для длины)
     // ========================================
     
     UIManager.prototype.libPage = function() {
@@ -488,7 +515,7 @@
         if (this.tab === 'tracks') s.showSkeleton(ct, 'tracks');
         else if (this.tab === 'artists') s.showSkeleton(ct, 'artists');
         else if (this.tab === 'albums') s.showSkeleton(ct, 'albums');
-        else ct.innerHTML = '<div class="loading-container"><div class="loader-spinner"></div><span>Loading...</span></div>';
+        else ct.innerHTML = '<div class="loading-container"><div class="loading-spinner"></div><span>Loading...</span></div>';
         
         var src = document.getElementById('sourceFilter') ? document.getElementById('sourceFilter').value : 'all';
         var srt = document.getElementById('sortFilter') ? document.getElementById('sortFilter').value : 'dateAdded';
@@ -585,7 +612,7 @@
         
         var c = document.getElementById('searchResults');
         if (!c) return;
-        c.innerHTML = '<div class="loading-container"><div class="loader-spinner"></div><span>Searching for "' + s.esc(q) + '"...</span></div>';
+        c.innerHTML = '<div class="loading-container"><div class="loading-spinner"></div><span>Searching for "' + s.esc(q) + '"...</span></div>';
         
         if (!window.library) return;
         library.search(q).then(function(r) {
@@ -593,7 +620,7 @@
                 c.innerHTML = '<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><p>No results found</p><span>Try a different search term</span></div>';
                 return;
             }
-            var h = '<div class="track-list"><div class="search-stats">Found ' + r.length + ' tracks</div>';
+            var h = '<div class="track-list"><div class="search-stats" style="padding:10px;color:var(--text-secondary);">Found ' + r.length + ' tracks</div>';
             for (var i = 0; i < r.length; i++) h += s.trackRow(r[i], i);
             h += '</div>';
             c.innerHTML = h;
@@ -640,7 +667,7 @@
         if (a) a.classList.add('hidden');
         if (pr) {
             pr.classList.remove('hidden');
-            pr.innerHTML = '<div class="loading-container"><div class="loader-spinner"></div><span>Uploading ' + f.length + ' files...</span></div>';
+            pr.innerHTML = '<div class="loading-container"><div class="loading-spinner"></div><span>Uploading ' + f.length + ' files...</span></div>';
         }
         
         if (!window.uploadManager) return;
@@ -669,14 +696,14 @@
         var s = this;
         var c = document.getElementById('content');
         
-        c.innerHTML = '<div class="page"><div class="page-header"><h1 class="page-title">📥 Import Music</h1><p class="page-subtitle">Import from other services</p></div><div class="settings-section"><h2 class="settings-section-title">🔌 Connected Services</h2><div class="services-grid" id="importServicesGrid"></div></div><div class="settings-section"><h2 class="settings-section-title">📄 File Import</h2><div class="import-options"><div class="import-option-card" id="importJSON">📋 JSON Format</div><div class="import-option-card" id="importCSV">📊 CSV Format</div><div class="import-option-card" id="importM3U">🎵 M3U Playlist</div></div><input type="file" id="importFileInput" accept=".json,.csv,.m3u" hidden></div></div>';
+        c.innerHTML = '<div class="page"><div class="page-header"><h1 class="page-title">📥 Import Music</h1><p class="page-subtitle">Import from other services</p></div><div class="settings-section"><h2 class="settings-section-title">🔌 Connected Services</h2><div class="services-grid" id="importServicesGrid" style="display:grid;gap:16px;"></div></div><div class="settings-section"><h2 class="settings-section-title">📄 File Import</h2><div class="import-options" style="display:flex;gap:12px;flex-wrap:wrap;"><div class="import-option-card" id="importJSON" style="background:var(--bg-card);padding:20px;border-radius:12px;cursor:pointer;text-align:center;">📋 JSON Format</div><div class="import-option-card" id="importCSV" style="background:var(--bg-card);padding:20px;border-radius:12px;cursor:pointer;text-align:center;">📊 CSV Format</div></div><input type="file" id="importFileInput" accept=".json,.csv" hidden></div></div>';
         
         var servicesGrid = document.getElementById('importServicesGrid');
         if (servicesGrid && window.services) {
             var svcs = services.getAll();
             var html = '';
             for (var i = 0; i < svcs.length; i++) {
-                html += '<div class="service-card"><div class="service-card-header"><div class="service-card-icon">' + svcs[i].name.charAt(0) + '</div><div><div class="service-card-name">' + svcs[i].name + '</div></div></div><div class="service-card-actions"><button class="btn btn-primary btn-sm connect-service" data-service="' + svcs[i].id + '">Connect</button></div></div>';
+                html += '<div class="service-card" style="background:var(--bg-card);padding:16px;border-radius:12px;display:flex;justify-content:space-between;align-items:center;"><div><div class="service-card-name" style="font-weight:500;">' + svcs[i].name + '</div></div><button class="btn btn-primary btn-sm connect-service" data-service="' + svcs[i].id + '">Connect</button></div>';
             }
             servicesGrid.innerHTML = html;
             
@@ -701,16 +728,6 @@
             inp.onchange = function(e) {
                 if (e.target.files[0] && window.importer) {
                     importer.importFromCSV(e.target.files[0]).then(function(r) { s.notify('Imported ' + r.importedCount + ' tracks', 'success'); s.loadStats(); s.go('library'); }).catch(function() { s.notify('Import failed', 'error'); });
-                }
-            };
-            inp.click();
-        });
-        
-        document.getElementById('importM3U').addEventListener('click', function() {
-            inp.accept = '.m3u';
-            inp.onchange = function(e) {
-                if (e.target.files[0] && window.importer) {
-                    importer.importFromM3U(e.target.files[0]).then(function(r) { s.notify('Imported ' + r.importedCount + ' tracks', 'success'); s.loadStats(); s.go('library'); }).catch(function() { s.notify('Import failed', 'error'); });
                 }
             };
             inp.click();
@@ -759,7 +776,7 @@
         var s = this;
         var c = document.getElementById('content');
         
-        var h = '<div class="page"><div class="page-header"><h1 class="page-title">⚙️ Settings</h1><p class="page-subtitle">Customize your experience</p></div><div class="settings-section"><h2 class="settings-section-title">🎨 Appearance</h2><div class="data-actions"><button class="btn btn-secondary" id="themeToggleBtn">🌓 Switch Theme</button></div></div><div class="settings-section"><h2 class="settings-section-title">🔊 Audio</h2><div class="data-actions"><select id="audioQuality" class="form-input"><option value="low">Low Quality (96kbps)</option><option value="medium" selected>Medium Quality (192kbps)</option><option value="high">High Quality (320kbps)</option></select></div></div><div class="settings-section"><h2 class="settings-section-title">💾 Data Management</h2><div class="data-actions"><button class="btn btn-secondary" id="exportDataBtn">📤 Export Library (JSON)</button><button class="btn btn-secondary" id="exportLibraryM3UBtn">📁 Export Library (M3U)</button><button class="btn btn-danger" id="clearDataBtn">🗑️ Clear All Data</button></div></div><div class="settings-section"><h2 class="settings-section-title">ℹ️ About</h2><div class="data-actions"><p class="text-muted">MusicHub v1.0.0 - Your personal music platform</p><p class="text-muted">© 2026 MusicHub. All rights reserved.</p></div></div></div>';
+        var h = '<div class="page"><div class="page-header"><h1 class="page-title">⚙️ Settings</h1><p class="page-subtitle">Customize your experience</p></div><div class="settings-section"><h2 class="settings-section-title">🎨 Appearance</h2><div class="data-actions"><button class="btn btn-secondary" id="themeToggleBtn">🌓 Switch Theme</button></div></div><div class="settings-section"><h2 class="settings-section-title">💾 Data Management</h2><div class="data-actions"><button class="btn btn-secondary" id="exportDataBtn">📤 Export Library (JSON)</button><button class="btn btn-danger" id="clearDataBtn">🗑️ Clear All Data</button></div></div><div class="settings-section"><h2 class="settings-section-title">ℹ️ About</h2><div class="data-actions"><p class="text-muted">MusicHub v2.0.0 - Your personal music platform</p><p class="text-muted">© 2026 MusicHub. All rights reserved.</p></div></div></div>';
         
         c.innerHTML = h;
         
@@ -774,19 +791,6 @@
         
         var exportBtn = document.getElementById('exportDataBtn');
         if (exportBtn) exportBtn.addEventListener('click', function() { s.exportLib(); });
-        
-        var exportM3UBtn = document.getElementById('exportLibraryM3UBtn');
-        if (exportM3UBtn && window.exportManager) exportM3UBtn.addEventListener('click', function() { exportManager.exportLibrary(); });
-        
-        var qualitySelect = document.getElementById('audioQuality');
-        if (qualitySelect) {
-            var savedQuality = localStorage.getItem('audio_quality') || 'medium';
-            qualitySelect.value = savedQuality;
-            qualitySelect.addEventListener('change', function() {
-                localStorage.setItem('audio_quality', qualitySelect.value);
-                s.notify('Audio quality changed to ' + qualitySelect.value, 'success');
-            });
-        }
         
         var clearBtn = document.getElementById('clearDataBtn');
         if (clearBtn && window.db) {
@@ -845,6 +849,8 @@
                         if (window.player) player.play(t);
                         if (window.queueManager) queueManager.add(t);
                         s.animateNowPlaying();
+                        var equalizer = document.getElementById('equalizer');
+                        if (equalizer) equalizer.style.display = 'flex';
                     } catch(e) {}
                 });
                 
@@ -990,7 +996,7 @@
                 if (t) {
                     for (var i = 0; i < t.length; i++) h += s.trackRow(t[i], i);
                 }
-                h += '</div><div class="mt-4" style="display:flex;gap:8px;flex-wrap:wrap;"><button class="btn btn-primary btn-sm" id="playAllBtn">▶ Play all</button><button class="btn btn-secondary btn-sm" id="exportPlBtn">📁 Export M3U</button><button class="btn btn-danger btn-sm" id="delPlBtn">🗑️ Delete Playlist</button></div>';
+                h += '</div><div class="mt-4" style="display:flex;gap:8px;flex-wrap:wrap;"><button class="btn btn-primary btn-sm" id="playAllBtn">▶ Play all</button><button class="btn btn-danger btn-sm" id="delPlBtn">🗑️ Delete Playlist</button></div>';
                 ct.innerHTML = h;
                 o.classList.remove('hidden');
                 
@@ -1009,13 +1015,6 @@
                             close();
                             s.notify('Playing playlist: ' + pl.name, 'success');
                         }
-                    });
-                }
-                
-                var exportBtn = document.getElementById('exportPlBtn');
-                if (exportBtn && window.exportManager && t) {
-                    exportBtn.addEventListener('click', function() {
-                        exportManager.exportAsM3U(t, pl.name + '.m3u');
                     });
                 }
                 
@@ -1103,7 +1102,12 @@
         var progressBar = document.getElementById('progressBar');
         var addToPlaylistBtn = document.getElementById('playerAddToPlaylistBtn');
         
-        if (playBtn && window.player) playBtn.addEventListener('click', function() { player.toggle(); });
+        if (playBtn && window.player) playBtn.addEventListener('click', function() { 
+            player.toggle();
+            var equalizer = document.getElementById('equalizer');
+            if (equalizer && player.playing) equalizer.style.display = 'flex';
+            else if (equalizer && !player.playing) equalizer.style.display = 'none';
+        });
         if (prevBtn && window.queueManager) prevBtn.addEventListener('click', function() { var p = queueManager.prev(); if (p && window.player) player.play(p); s.animateNowPlaying(); });
         if (nextBtn && window.queueManager) nextBtn.addEventListener('click', function() { var n = queueManager.next(); if (n && window.player) player.play(n); s.animateNowPlaying(); });
         if (shuffleBtn && window.queueManager) shuffleBtn.addEventListener('click', function() { queueManager.toggleShuffle(); });
@@ -1113,6 +1117,9 @@
             volumeSlider.addEventListener('input', function(e) { 
                 player.setVolume(e.target.value / 100);
                 s.volumeBeforeMute = e.target.value;
+                var volumeWave = document.getElementById('volumeWave');
+                if (volumeWave) volumeWave.style.display = 'flex';
+                setTimeout(function() { if (volumeWave) volumeWave.style.display = 'none'; }, 1000);
             });
         }
         
@@ -1123,11 +1130,11 @@
                     s.volumeBeforeMute = currentVol;
                     volumeSlider.value = 0;
                     player.setVolume(0);
-                    s.notify('🔇 Muted', 'info');
+                    s.showVolumeToast(0);
                 } else {
                     volumeSlider.value = s.volumeBeforeMute;
                     player.setVolume(s.volumeBeforeMute / 100);
-                    s.notify('🔊 Unmuted', 'info');
+                    s.showVolumeToast(s.volumeBeforeMute);
                 }
             });
         }
@@ -1171,6 +1178,12 @@
             icon.innerHTML = isPlaying ? 
                 '<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>' : 
                 '<polygon points="5 3 19 12 5 21 5 3"/>';
+        }
+        
+        var equalizer = document.getElementById('equalizer');
+        if (equalizer) {
+            if (isPlaying && t) equalizer.style.display = 'flex';
+            else equalizer.style.display = 'none';
         }
         
         var shuffleBtn = document.getElementById('shuffleBtn');
@@ -1273,6 +1286,5 @@
         return div.innerHTML;
     };
     
-    // Глобальный экземпляр
     window.ui = new UIManager();
 })();
