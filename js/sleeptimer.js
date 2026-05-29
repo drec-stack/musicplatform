@@ -2,136 +2,86 @@
     'use strict';
     
     function SleepTimer() {
-        this.active = false;
-        this.endTime = null;
-        this.timerInterval = null;
-        this.init();
+        this.timerId = null;
+        this.remainingSeconds = 0;
+        this.isActive = false;
+        this.onTickCallbacks = [];
+        this.onEndCallbacks = [];
     }
     
-    SleepTimer.prototype.init = function() {
-        this.createButton();
-    };
-    
-    SleepTimer.prototype.createButton = function() {
-        var playerRight = document.querySelector('.player-right');
-        if (playerRight && !document.getElementById('sleepTimerBtn')) {
-            var btn = document.createElement('button');
-            btn.id = 'sleepTimerBtn';
-            btn.className = 'btn-icon';
-            btn.title = 'Sleep timer';
-            btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>';
-            btn.addEventListener('click', function() { this.showMenu(); }.bind(this));
-            playerRight.appendChild(btn);
-        }
-    };
-    
-    SleepTimer.prototype.showMenu = function() {
-        var options = [
-            { label: 'Off', minutes: 0 },
-            { label: '5 minutes', minutes: 5 },
-            { label: '10 minutes', minutes: 10 },
-            { label: '15 minutes', minutes: 15 },
-            { label: '30 minutes', minutes: 30 },
-            { label: '60 minutes', minutes: 60 },
-            { label: 'End of current track', minutes: 'track' }
-        ];
+    SleepTimer.prototype.set = function(minutes) {
+        this.stop();
         
-        var items = options.map(function(opt) {
-            return {
-                label: opt.label,
-                action: function() { this.setTimer(opt.minutes); }.bind(this)
-            };
-        }.bind(this));
+        this.remainingSeconds = minutes * 60;
+        this.isActive = true;
         
-        if (window.contextMenu) {
-            window.contextMenu.show(window.event ? window.event.clientX : 0, 
-                                   window.event ? window.event.clientY : 0, items);
-        }
-    };
-    
-    SleepTimer.prototype.setTimer = function(minutes) {
-        this.cancel();
-        
-        if (minutes === 0) {
-            if (window.ui) ui.notify('Sleep timer off', 'info');
-            return;
-        }
-        
-        if (minutes === 'track') {
-            this.setEndOfTrack();
-            return;
-        }
-        
-        this.active = true;
-        this.endTime = Date.now() + (minutes * 60 * 1000);
-        this.startCountdown();
-        
-        if (window.ui) ui.notify('⏰ Sleep timer: ' + minutes + ' minutes', 'success');
-    };
-    
-    SleepTimer.prototype.setEndOfTrack = function() {
         var self = this;
-        this.active = true;
+        this.timerId = setInterval(function() {
+            if (self.remainingSeconds > 0) {
+                self.remainingSeconds--;
+                self.emitTick();
+                
+                if (self.remainingSeconds === 0) {
+                    self.stop();
+                    self.emitEnd();
+                }
+            }
+        }, 1000);
         
-        var checkTrackEnd = function() {
-            if (!player.playing) {
-                self.cancel();
-                return;
-            }
-            
-            var remaining = player.getDuration() - player.getTime();
-            if (remaining <= 0.5) {
-                self.stopPlayback();
-            } else {
-                setTimeout(checkTrackEnd, 500);
-            }
+        if (window.ui) {
+            window.ui.notify('⏰ Sleep timer set for ' + minutes + ' minutes', 'info');
+        }
+    };
+    
+    SleepTimer.prototype.stop = function() {
+        if (this.timerId) {
+            clearInterval(this.timerId);
+            this.timerId = null;
+        }
+        this.isActive = false;
+        this.remainingSeconds = 0;
+    };
+    
+    SleepTimer.prototype.getRemaining = function() {
+        var mins = Math.floor(this.remainingSeconds / 60);
+        var secs = this.remainingSeconds % 60;
+        return {
+            minutes: mins,
+            seconds: secs,
+            formatted: mins + ':' + (secs < 10 ? '0' : '') + secs
         };
-        
-        checkTrackEnd();
-        if (window.ui) ui.notify('⏰ Sleep timer: end of track', 'success');
     };
     
-    SleepTimer.prototype.startCountdown = function() {
-        var self = this;
-        this.timerInterval = setInterval(function() {
-            if (!self.active) {
-                clearInterval(self.timerInterval);
-                return;
-            }
-            
-            var remaining = self.endTime - Date.now();
-            if (remaining <= 0) {
-                self.stopPlayback();
-            } else {
-                self.showNotification(remaining);
-            }
-        }, 60000); // Каждую минуту
-    };
-    
-    SleepTimer.prototype.showNotification = function(remaining) {
-        var minutes = Math.ceil(remaining / 60000);
-        if (minutes === 1) {
-            if (window.ui) ui.notify('⏰ Sleep timer: 1 minute remaining', 'info');
-        } else if (minutes <= 5 && minutes % 5 === 0) {
-            if (window.ui) ui.notify('⏰ Sleep timer: ' + minutes + ' minutes remaining', 'info');
+    SleepTimer.prototype.addTime = function(minutes) {
+        if (this.isActive) {
+            this.remainingSeconds += minutes * 60;
+        } else {
+            this.set(minutes);
         }
     };
     
-    SleepTimer.prototype.stopPlayback = function() {
-        if (player.playing) {
-            player.audio.pause();
-            if (window.ui) ui.notify('💤 Sleep timer: playback stopped', 'info');
-        }
-        this.cancel();
+    SleepTimer.prototype.emitTick = function() {
+        this.onTickCallbacks.forEach(function(cb) {
+            cb(this.getRemaining());
+        }.bind(this));
     };
     
-    SleepTimer.prototype.cancel = function() {
-        this.active = false;
-        if (this.timerInterval) {
-            clearInterval(this.timerInterval);
-            this.timerInterval = null;
+    SleepTimer.prototype.emitEnd = function() {
+        if (window.player) {
+            player.pause();
         }
-        this.endTime = null;
+        this.onEndCallbacks.forEach(function(cb) { cb(); });
+        if (window.ui) {
+            window.ui.notify('💤 Sleep timer: Music paused', 'info');
+        }
+    };
+    
+    SleepTimer.prototype.onTick = function(callback) {
+        this.onTickCallbacks.push(callback);
+    };
+    
+    SleepTimer.prototype.onEnd = function(callback) {
+        this.onEndCallbacks.push(callback);
     };
     
     window.sleepTimer = new SleepTimer();
