@@ -1,16 +1,141 @@
 (function() {
     'use strict';
-    if (!String.prototype.includes) { String.prototype.includes = function(s, p) { return this.indexOf(s, p||0) !== -1; }; }
-    if (!Array.prototype.includes) { Array.prototype.includes = function(e, f) { var O=Object(this), len=O.length>>>0, n=f||0; if(n>=len)return false; for(var k=n;k<len;k++){if(O[k]===e||(e!==e&&O[k]!==O[k]))return true;} return false; }; }
-    if (!Array.prototype.find) { Array.prototype.find = function(p) { var O=Object(this), len=O.length>>>0, a=arguments[1]; for(var i=0;i<len;i++){if(p.call(a,O[i],i,O))return O[i];} return undefined; }; }
-    if (!Array.prototype.filter) { Array.prototype.filter = function(c,a) { var r=[], O=Object(this), len=O.length>>>0; for(var i=0;i<len;i++){if(i in O&&c.call(a,O[i],i,O))r.push(O[i]);} return r; }; }
-    if (!Array.prototype.map) { Array.prototype.map = function(c,a) { var r=[], O=Object(this), len=O.length>>>0; for(var i=0;i<len;i++){if(i in O)r[i]=c.call(a,O[i],i,O);} return r; }; }
-    if (!Array.prototype.forEach) { Array.prototype.forEach = function(c,a) { var O=Object(this), len=O.length>>>0; for(var i=0;i<len;i++){if(i in O)c.call(a,O[i],i,O);} }; }
-    if (!Object.assign) { Object.assign = function(t) { for(var i=1;i<arguments.length;i++){var s=arguments[i]; if(s)for(var k in s){if(Object.prototype.hasOwnProperty.call(s,k))t[k]=s[k];}} return t; }; }
-    if (!Element.prototype.closest) { Element.prototype.closest = function(s) { var e=this; do{ if(Element.prototype.matches.call(e,s))return e; e=e.parentElement||e.parentNode; }while(e&&e.nodeType===1); return null; }; }
-    if (!Element.prototype.matches) { Element.prototype.matches = Element.prototype.msMatchesSelector||Element.prototype.webkitMatchesSelector; }
-    if (window.NodeList && !NodeList.prototype.forEach) { NodeList.prototype.forEach = Array.prototype.forEach; }
-    if (window.HTMLCollection && !HTMLCollection.prototype.forEach) { HTMLCollection.prototype.forEach = Array.prototype.forEach; }
-    if (typeof Promise === 'undefined') { window.Promise = function(e) { var s=this; s.st='pending'; s.v=undefined; s.of=[]; s.or=[]; function r(v){if(s.st==='pending'){s.st='fulfilled';s.v=v;for(var i=0;i<s.of.length;i++)s.of[i](v);}} function j(v){if(s.st==='pending'){s.st='rejected';s.v=v;for(var i=0;i<s.or.length;i++)s.or[i](v);}} try{e(r,j);}catch(ex){j(ex);} }; Promise.prototype.then = function(f,r) { var s=this; return new Promise(function(res,rej){ function h(){ var c=s.st==='fulfilled'?f:r; if(typeof c!=='function'){if(s.st==='fulfilled')res(s.v);else rej(s.v);return;} try{res(c(s.v));}catch(e){rej(e);} } if(s.st==='pending'){s.of.push(h);s.or.push(h);}else{h();} }); }; Promise.prototype.catch = function(r) { return this.then(null,r); }; Promise.all = function(p) { return new Promise(function(res,rej){ if(!p.length){res([]);return;} var r=[],c=0; for(var i=0;i<p.length;i++){(function(i){p[i].then(function(v){r[i]=v;c++;if(c===p.length)res(r);},rej);})(i);} }); }; Promise.resolve = function(v) { return new Promise(function(r){r(v);}); }; Promise.reject = function(v) { return new Promise(function(_,r){r(v);}); }; }
-    if (typeof console === 'undefined') { window.console = { log: function(){}, warn: function(){}, error: function(){} }; }
+    
+    // Array.prototype.find для старых браузеров
+    if (!Array.prototype.find) {
+        Array.prototype.find = function(predicate) {
+            if (this == null) throw new TypeError('Array.prototype.find called on null or undefined');
+            if (typeof predicate !== 'function') throw new TypeError('predicate must be a function');
+            var list = Object(this);
+            var length = list.length >>> 0;
+            var thisArg = arguments[1];
+            for (var i = 0; i < length; i++) {
+                var value = list[i];
+                if (predicate.call(thisArg, value, i, list)) return value;
+            }
+            return undefined;
+        };
+    }
+    
+    // Array.prototype.includes для старых браузеров
+    if (!Array.prototype.includes) {
+        Array.prototype.includes = function(searchElement, fromIndex) {
+            if (this == null) throw new TypeError('Array.prototype.includes called on null or undefined');
+            var list = Object(this);
+            var length = list.length >>> 0;
+            if (length === 0) return false;
+            var n = fromIndex | 0;
+            var k = Math.max(n >= 0 ? n : length - Math.abs(n), 0);
+            while (k < length) {
+                if (list[k] === searchElement) return true;
+                k++;
+            }
+            return false;
+        };
+    }
+    
+    // Object.assign для старых браузеров
+    if (!Object.assign) {
+        Object.assign = function(target) {
+            if (target == null) throw new TypeError('Cannot convert undefined or null to object');
+            var to = Object(target);
+            for (var index = 1; index < arguments.length; index++) {
+                var nextSource = arguments[index];
+                if (nextSource != null) {
+                    for (var nextKey in nextSource) {
+                        if (Object.prototype.hasOwnProperty.call(nextSource, nextKey)) {
+                            to[nextKey] = nextSource[nextKey];
+                        }
+                    }
+                }
+            }
+            return to;
+        };
+    }
+    
+    // Promise для старых браузеров (если нужно)
+    if (typeof Promise === 'undefined') {
+        window.Promise = function(executor) {
+            var self = this;
+            self.status = 'pending';
+            self.value = undefined;
+            self.callbacks = [];
+            
+            function resolve(value) {
+                if (self.status !== 'pending') return;
+                self.status = 'fulfilled';
+                self.value = value;
+                self.callbacks.forEach(function(cb) { cb.onFulfilled(value); });
+            }
+            
+            function reject(reason) {
+                if (self.status !== 'pending') return;
+                self.status = 'rejected';
+                self.value = reason;
+                self.callbacks.forEach(function(cb) { cb.onRejected(reason); });
+            }
+            
+            try {
+                executor(resolve, reject);
+            } catch(e) {
+                reject(e);
+            }
+        };
+        
+        Promise.prototype.then = function(onFulfilled, onRejected) {
+            var self = this;
+            return new Promise(function(resolve, reject) {
+                function handle(callback) {
+                    try {
+                        var result = callback(self.value);
+                        if (result && typeof result.then === 'function') {
+                            result.then(resolve, reject);
+                        } else {
+                            resolve(result);
+                        }
+                    } catch(e) {
+                        reject(e);
+                    }
+                }
+                
+                if (self.status === 'fulfilled') {
+                    handle(onFulfilled);
+                } else if (self.status === 'rejected') {
+                    handle(onRejected);
+                } else {
+                    self.callbacks.push({
+                        onFulfilled: function(value) { handle(onFulfilled); },
+                        onRejected: function(reason) { handle(onRejected); }
+                    });
+                }
+            });
+        };
+        
+        Promise.prototype.catch = function(onRejected) {
+            return this.then(null, onRejected);
+        };
+        
+        Promise.resolve = function(value) {
+            return new Promise(function(resolve) { resolve(value); });
+        };
+        
+        Promise.reject = function(reason) {
+            return new Promise(function(resolve, reject) { reject(reason); });
+        };
+        
+        Promise.all = function(promises) {
+            return new Promise(function(resolve, reject) {
+                var results = [];
+                var remaining = promises.length;
+                if (remaining === 0) resolve(results);
+                promises.forEach(function(promise, index) {
+                    Promise.resolve(promise).then(function(value) {
+                        results[index] = value;
+                        remaining--;
+                        if (remaining === 0) resolve(results);
+                    }, reject);
+                });
+            });
+        };
+    }
 })();
