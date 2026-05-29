@@ -3,59 +3,49 @@
     
     function FavoritesManager() {
         this.favorites = [];
+        this.listeners = { change: [] };
         this.load();
     }
     
     FavoritesManager.prototype.load = function() {
-        try {
-            var saved = localStorage.getItem('musichub_favorites');
-            if (saved) this.favorites = JSON.parse(saved);
-        } catch(e) {}
+        var self = this;
+        var saved = storage.get('favorites', []);
+        this.favorites = saved;
+        
+        // Обновляем из базы данных
+        db.getAllTracks().then(function(tracks) {
+            tracks.forEach(function(track) {
+                if (track.favorite && !self.favorites.includes(track.id)) {
+                    self.favorites.push(track.id);
+                }
+            });
+            self.save();
+        });
     };
     
     FavoritesManager.prototype.save = function() {
-        try {
-            localStorage.setItem('musichub_favorites', JSON.stringify(this.favorites));
-        } catch(e) {}
-    };
-    
-    FavoritesManager.prototype.isFavorite = function(trackId) {
-        return this.favorites.some(function(f) { return f.id === trackId; });
-    };
-    
-    FavoritesManager.prototype.add = function(track) {
-        if (this.isFavorite(track.id)) return false;
-        this.favorites.unshift({
-            id: track.id,
-            title: track.title,
-            artist: track.artist,
-            cover: track.cover,
-            duration: track.duration,
-            source: track.source,
-            addedAt: Date.now()
-        });
-        this.save();
-        this.emit('change', { action: 'add', track: track });
-        return true;
-    };
-    
-    FavoritesManager.prototype.remove = function(trackId) {
-        var len = this.favorites.length;
-        this.favorites = this.favorites.filter(function(f) { return f.id !== trackId; });
-        if (len !== this.favorites.length) {
-            this.save();
-            this.emit('change', { action: 'remove', trackId: trackId });
-            return true;
-        }
-        return false;
+        storage.set('favorites', this.favorites);
+        this.emit('change', this.favorites);
     };
     
     FavoritesManager.prototype.toggle = function(track) {
-        if (this.isFavorite(track.id)) {
-            return this.remove(track.id);
+        if (!track) return;
+        
+        var index = this.favorites.indexOf(track.id);
+        if (index === -1) {
+            this.favorites.push(track.id);
+            track.favorite = true;
         } else {
-            return this.add(track);
+            this.favorites.splice(index, 1);
+            track.favorite = false;
         }
+        
+        db.saveTrack(track);
+        this.save();
+    };
+    
+    FavoritesManager.prototype.isFavorite = function(trackId) {
+        return this.favorites.includes(trackId);
     };
     
     FavoritesManager.prototype.getAll = function() {
@@ -64,20 +54,32 @@
     
     FavoritesManager.prototype.getTracks = function() {
         var self = this;
-        var promises = this.favorites.map(function(f) {
-            return db.getTrack(f.id).then(function(track) {
-                return track || f;
+        return db.getAllTracks().then(function(tracks) {
+            return tracks.filter(function(track) {
+                return self.favorites.includes(track.id);
             });
         });
-        return Promise.all(promises);
     };
     
-    // Event emitter
-    FavoritesManager.prototype.events = [];
-    FavoritesManager.prototype.on = function(e, cb) { this.events.push({e:e, cb:cb}); };
-    FavoritesManager.prototype.emit = function(e, d) {
-        for(var i=0;i<this.events.length;i++) {
-            if(this.events[i].e === e) this.events[i].cb(d);
+    FavoritesManager.prototype.remove = function(trackId) {
+        var index = this.favorites.indexOf(trackId);
+        if (index !== -1) {
+            this.favorites.splice(index, 1);
+            this.save();
+        }
+    };
+    
+    FavoritesManager.prototype.on = function(event, callback) {
+        if (this.listeners[event]) {
+            this.listeners[event].push(callback);
+        }
+    };
+    
+    FavoritesManager.prototype.emit = function(event, data) {
+        if (this.listeners[event]) {
+            this.listeners[event].forEach(function(callback) {
+                callback(data);
+            });
         }
     };
     
