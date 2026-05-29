@@ -1,57 +1,101 @@
 (function() {
     'use strict';
+    
     function QueueManager() {
-        this.list=[]; this.idx=-1; this.shuffle=false; this.repeat='none'; this.orig=[]; this.events=[];
-        var s=storage.get('queue', []);
-        var savedIdx = storage.get('queue_idx', -1);
-        if(s.length){this.list=s;this.orig=s.slice();this.idx=savedIdx;}
+        this.queue = [];
+        this.currentIndex = -1;
+        this.shuffle = false;
+        this.repeat = 'none';
+        this.listeners = {
+            queue_change: [],
+            shuffle_change: [],
+            repeat_change: []
+        };
     }
-    QueueManager.prototype.save = function() { 
-        storage.set('queue', this.list.slice(0,100));
-        storage.set('queue_idx', this.idx);
+    
+    QueueManager.prototype.add = function(track) {
+        this.queue.push(track);
+        this.emit('queue_change', this.queue);
+        return this.queue.length;
     };
-    QueueManager.prototype.add = function(t) { this.list.push(t); if(this.shuffle)this.orig.push(t); this.save(); this.emit('add',t); };
-    QueueManager.prototype.clear = function() { this.list=[]; this.orig=[]; this.idx=-1; this.save(); this.emit('clear'); };
-    QueueManager.prototype.current = function() { return(this.idx>=0&&this.idx<this.list.length)?this.list[this.idx]:null; };
-    QueueManager.prototype.next = function() {
-        if(this.repeat==='one')return this.current();
-        var ni=this.idx+1;
-        if(ni>=this.list.length){if(this.repeat==='all')ni=0;else return null;}
-        this.idx=ni; this.save(); return this.list[ni];
-    };
-    QueueManager.prototype.prev = function() {
-        if(this.idx>0){this.idx--; this.save(); return this.list[this.idx];}
-        if(this.repeat==='all'&&this.list.length>0){this.idx=this.list.length-1; this.save(); return this.list[this.idx];}
-        return null;
-    };
-    QueueManager.prototype.toggleShuffle = function() {
-        this.shuffle=!this.shuffle;
-        if(this.shuffle){this.orig=this.list.slice();var c=this.current();this.shuffleArr(this.list);this.idx=this.list.indexOf(c);}
-        else{var c=this.current();this.list=this.orig.slice();this.idx=this.list.indexOf(c);}
-        this.save();
-        this.emit('shuffle_change',this.shuffle);
-    };
-    QueueManager.prototype.toggleRepeat = function() {
-        var m=['none','all','one'],ci=0; for(var i=0;i<m.length;i++){if(m[i]===this.repeat){ci=i;break;}}
-        this.repeat=m[(ci+1)%m.length]; this.emit('repeat_change',this.repeat);
-    };
-    QueueManager.prototype.shuffleArr = function(a) { for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1)),t=a[i];a[i]=a[j];a[j]=t;} };
-    QueueManager.prototype.getAll = function() { return this.list.slice(); };
-    QueueManager.prototype.getIndex = function() { return this.idx; };
+    
     QueueManager.prototype.remove = function(index) {
-        if(index>=0 && index<this.list.length){
-            var removed = this.list[index];
-            this.list.splice(index,1);
-            if(this.shuffle) this.orig = this.list.slice();
-            if(this.idx >= this.list.length) this.idx = this.list.length - 1;
-            if(this.idx > index) this.idx--;
-            this.save();
-            this.emit('remove', removed);
-            return removed;
+        if (index >= 0 && index < this.queue.length) {
+            this.queue.splice(index, 1);
+            this.emit('queue_change', this.queue);
         }
+    };
+    
+    QueueManager.prototype.clear = function() {
+        this.queue = [];
+        this.currentIndex = -1;
+        this.emit('queue_change', this.queue);
+    };
+    
+    QueueManager.prototype.next = function() {
+        if (this.queue.length === 0) return null;
+        
+        if (this.repeat === 'one' && this.currentIndex >= 0) {
+            return this.queue[this.currentIndex];
+        }
+        
+        if (this.shuffle) {
+            var randomIndex = Math.floor(Math.random() * this.queue.length);
+            this.currentIndex = randomIndex;
+            return this.queue[randomIndex];
+        }
+        
+        if (this.currentIndex < this.queue.length - 1) {
+            this.currentIndex++;
+            return this.queue[this.currentIndex];
+        } else if (this.repeat === 'all') {
+            this.currentIndex = 0;
+            return this.queue[0];
+        }
+        
         return null;
     };
-    QueueManager.prototype.on = function(e,c) { this.events.push({e:e,cb:c}); };
-    QueueManager.prototype.emit = function(e,d) { for(var i=0;i<this.events.length;i++){if(this.events[i].e===e)this.events[i].cb(d);} };
+    
+    QueueManager.prototype.prev = function() {
+        if (this.queue.length === 0) return null;
+        
+        if (this.currentIndex > 0) {
+            this.currentIndex--;
+            return this.queue[this.currentIndex];
+        }
+        
+        return this.queue[0];
+    };
+    
+    QueueManager.prototype.toggleShuffle = function() {
+        this.shuffle = !this.shuffle;
+        this.emit('shuffle_change', this.shuffle);
+    };
+    
+    QueueManager.prototype.toggleRepeat = function() {
+        if (this.repeat === 'none') this.repeat = 'all';
+        else if (this.repeat === 'all') this.repeat = 'one';
+        else this.repeat = 'none';
+        this.emit('repeat_change', this.repeat);
+    };
+    
+    QueueManager.prototype.getAll = function() {
+        return this.queue;
+    };
+    
+    QueueManager.prototype.on = function(event, callback) {
+        if (this.listeners[event]) {
+            this.listeners[event].push(callback);
+        }
+    };
+    
+    QueueManager.prototype.emit = function(event, data) {
+        if (this.listeners[event]) {
+            this.listeners[event].forEach(function(callback) {
+                callback(data);
+            });
+        }
+    };
+    
     window.queueManager = new QueueManager();
 })();
