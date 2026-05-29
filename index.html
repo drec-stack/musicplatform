@@ -180,7 +180,7 @@
     }
     </script>
     
-    <!-- Core -->
+        <!-- Core (важно: ui.js должен быть ПОСЛЕ всех зависимостей) -->
     <script src="js/polyfills.js"></script>
     <script src="js/database.js"></script>
     <script src="js/storage.js"></script>
@@ -193,14 +193,19 @@
     <script src="js/importer.js"></script>
     <script src="js/search.js"></script>
     
-    <!-- New features -->
+    <!-- Новые функции -->
     <script src="js/favorites.js"></script>
     <script src="js/radio.js"></script>
     <script src="js/visualizer.js"></script>
     <script src="js/export.js"></script>
     <script src="js/contextmenu.js"></script>
+    <script src="js/hotkeys.js"></script>
+    <script src="js/dragqueue.js"></script>
+    <script src="js/nowplaying.js"></script>
+    <script src="js/sleeptimer.js"></script>
+    <script src="js/crossfade.js"></script>
     
-    <!-- UI and App -->
+    <!-- UI и APP (ПОСЛЕДНИМИ!) -->
     <script src="js/ui.js"></script>
     <script src="js/app.js"></script>
 
