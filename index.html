@@ -88,20 +88,20 @@
         <!-- Player Footer -->
         <footer id="player">
             <div class="player-container">
-                <!-- Track Info -->
-                <div class="player-track">
+                <!-- Track Info Block -->
+                <div class="player-track-block">
                     <div class="player-cover" id="playerCover">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="24" height="24">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28">
                             <path d="M9 18V5l12-2v13"/>
                             <circle cx="6" cy="18" r="3"/>
                             <circle cx="18" cy="16" r="3"/>
                         </svg>
                     </div>
-                    <div class="player-info">
-                        <div class="player-title" id="playerTitle">Nothing playing</div>
-                        <div class="player-artist" id="playerArtist">Select a track</div>
+                    <div class="player-track-info">
+                        <div class="player-track-title" id="playerTitle">Nothing playing</div>
+                        <div class="player-track-artist" id="playerArtist">Select a track</div>
                     </div>
-                    <button class="btn-icon" id="playerAddToPlaylistBtn" title="Add to playlist">
+                    <button class="player-add-btn" id="playerAddToPlaylistBtn" title="Add to playlist">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
                             <line x1="12" y1="5" x2="12" y2="19"/>
                             <line x1="5" y1="12" x2="19" y2="12"/>
@@ -109,20 +109,20 @@
                     </button>
                 </div>
                 
-                <!-- Player Controls -->
-                <div class="player-center">
+                <!-- Player Controls Block -->
+                <div class="player-controls-block">
                     <div class="player-buttons">
                         <button class="player-btn" id="shuffleBtn" title="Shuffle">🔀</button>
                         <button class="player-btn" id="prevBtn" title="Previous">⏮</button>
-                        <button class="player-btn-play" id="playBtn" title="Play">
-                            <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20" id="playIcon">
+                        <button class="player-play-btn" id="playBtn" title="Play">
+                            <svg viewBox="0 0 24 24" fill="currentColor" width="22" height="22" id="playIcon">
                                 <polygon points="5 3 19 12 5 21 5 3"/>
                             </svg>
                         </button>
                         <button class="player-btn" id="nextBtn" title="Next">⏭</button>
                         <button class="player-btn" id="repeatBtn" title="Repeat">🔁</button>
                     </div>
-                    <div class="player-progress">
+                    <div class="player-progress-block">
                         <span class="player-time" id="currentTime">0:00</span>
                         <div class="player-progress-bar" id="progressBar">
                             <div class="player-progress-fill" id="progressFill"></div>
@@ -131,12 +131,10 @@
                     </div>
                 </div>
                 
-                <!-- Volume Control -->
-                <div class="player-right">
-                    <div class="player-volume">
-                        <button class="btn-icon" id="volumeBtn" title="Volume">🔊</button>
-                        <input type="range" class="player-volume-slider" id="volumeSlider" min="0" max="100" value="70">
-                    </div>
+                <!-- Volume Control Block -->
+                <div class="player-volume-block">
+                    <button class="player-volume-btn" id="volumeBtn" title="Volume">🔊</button>
+                    <input type="range" class="player-volume-slider" id="volumeSlider" min="0" max="100" value="70">
                 </div>
             </div>
         </footer>
@@ -149,9 +147,6 @@
     
     <!-- Notifications -->
     <div class="notification-container" id="notificationContainer"></div>
-    
-    <!-- Theme Toggle -->
-    <div class="theme-toggle" id="themeToggle" title="Switch theme">🌓</div>
 
     <!-- Initialization Scripts -->
     <script>
@@ -163,21 +158,6 @@
                 loaderError.style.display = 'block';
             }
             document.body.classList.add('error');
-        }
-        
-        // Theme handling
-        var themeToggle = document.getElementById('themeToggle');
-        var savedTheme = localStorage.getItem('musichub_theme');
-        if (savedTheme === 'light') {
-            document.body.classList.add('light-theme');
-        }
-        
-        if (themeToggle) {
-            themeToggle.addEventListener('click', function() {
-                document.body.classList.toggle('light-theme');
-                var newTheme = document.body.classList.contains('light-theme') ? 'light' : 'dark';
-                localStorage.setItem('musichub_theme', newTheme);
-            });
         }
     </script>
     
