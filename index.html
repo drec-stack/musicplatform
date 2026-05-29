@@ -11,14 +11,17 @@
     <link rel="stylesheet" href="css/themes.css">
 </head>
 <body>
-    <!-- Floating Background Balls -->
-    <div class="floating-balls">
-        <div class="floating-ball"></div>
-        <div class="floating-ball"></div>
-        <div class="floating-ball"></div>
-        <div class="floating-ball"></div>
-        <div class="floating-ball"></div>
+    <!-- ХАОТИЧНЫЙ ВОЛНООБРАЗНЫЙ ФОН -->
+    <div class="gradient-bg"></div>
+    <div class="waves-container">
+        <div class="wave-1"></div>
+        <div class="wave-2"></div>
+        <div class="wave-3"></div>
+        <div class="wave-4"></div>
+        <div class="wave-5"></div>
+        <div class="wave-6"></div>
     </div>
+    <div class="particles" id="particles"></div>
 
     <!-- Loader -->
     <div id="loader">
@@ -175,6 +178,28 @@
             }
             document.body.classList.add('error');
         }
+        
+        // Создание плавающих частиц
+        function createParticles() {
+            var container = document.getElementById('particles');
+            if (!container) return;
+            
+            for (var i = 0; i < 50; i++) {
+                var particle = document.createElement('div');
+                particle.className = 'particle';
+                var size = Math.random() * 6 + 2;
+                particle.style.setProperty('--size', size + 'px');
+                particle.style.setProperty('--duration', (Math.random() * 15 + 8) + 's');
+                particle.style.setProperty('--x', (Math.random() * 200 - 100) + 'px');
+                particle.style.setProperty('--y', (Math.random() * -200 - 50) + 'px');
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.top = Math.random() * 100 + '%';
+                particle.style.animationDelay = Math.random() * 20 + 's';
+                container.appendChild(particle);
+            }
+        }
+        
+        createParticles();
     </script>
     
     <!-- Core Scripts (in correct order) -->
