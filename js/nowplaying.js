@@ -59,4 +59,18 @@
     };
     
     NowPlaying.prototype.on = function(event, callback) {
-        if (this
+        if (this.listeners[event]) {
+            this.listeners[event].push(callback);
+        }
+    };
+    
+    NowPlaying.prototype.emit = function(event, data) {
+        if (this.listeners[event]) {
+            this.listeners[event].forEach(function(callback) {
+                callback(data);
+            });
+        }
+    };
+    
+    window.nowPlaying = new NowPlaying();
+})();
