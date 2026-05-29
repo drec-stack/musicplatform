@@ -6,6 +6,7 @@
         this.tab = 'tracks'; 
         this.st = null;
         this._initialized = false;
+        this.volumeBeforeMute = 70;
     }
     
     // ========================================
@@ -59,11 +60,11 @@
         
         var items = [
             {p:'home', svg:'<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>', l:'Home'},
-            {p:'library', svg:'<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>', l:'Library'},
+            {p:'library', svg:'<path d="M4 6h16v12H4z"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="12" y2="14"/>', l:'Library'},
             {p:'search', svg:'<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>', l:'Search'},
             {p:'upload', svg:'<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>', l:'Upload'},
             {p:'import', svg:'<rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/>', l:'Import'},
-            {p:'playlists', svg:'<line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>', l:'Playlists'}
+            {p:'playlists', svg:'<path d="M2 4h20v16H2z"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="12" y2="12"/>', l:'Playlists'}
         ];
         
         var h = '';
@@ -75,7 +76,6 @@
         }
         n.innerHTML = h;
         
-        // Обновляем активный пункт в футере
         var footerNav = document.querySelector('.sidebar-footer .nav-item');
         if (footerNav) {
             if (this.page === 'settings') footerNav.classList.add('active');
@@ -135,6 +135,8 @@
                 e.preventDefault();
                 var i = document.getElementById('globalSearch');
                 if (i) i.focus();
+                i.classList.add('pulse');
+                setTimeout(function() { i.classList.remove('pulse'); }, 300);
             }
             if (e.code === 'Space' && document.activeElement === document.body) {
                 e.preventDefault();
@@ -153,6 +155,7 @@
                 if (window.queueManager) {
                     var n = queueManager.next();
                     if (n && window.player) player.play(n);
+                    s.animateNowPlaying();
                 }
             }
             if (e.code === 'MediaPrevTrack') {
@@ -160,9 +163,50 @@
                 if (window.queueManager) {
                     var p = queueManager.prev();
                     if (p && window.player) player.play(p);
+                    s.animateNowPlaying();
+                }
+            }
+            if ((e.ctrlKey || e.metaKey) && e.key === 'ArrowUp') {
+                e.preventDefault();
+                var vol = document.getElementById('volumeSlider');
+                if (vol) {
+                    var newVol = Math.min(100, parseInt(vol.value) + 10);
+                    vol.value = newVol;
+                    if (window.player) player.setVolume(newVol / 100);
+                    s.showVolumeToast(newVol);
+                }
+            }
+            if ((e.ctrlKey || e.metaKey) && e.key === 'ArrowDown') {
+                e.preventDefault();
+                var vol = document.getElementById('volumeSlider');
+                if (vol) {
+                    var newVol = Math.max(0, parseInt(vol.value) - 10);
+                    vol.value = newVol;
+                    if (window.player) player.setVolume(newVol / 100);
+                    s.showVolumeToast(newVol);
                 }
             }
         });
+    };
+    
+    UIManager.prototype.showVolumeToast = function(volume) {
+        var toast = document.createElement('div');
+        toast.className = 'volume-toast';
+        toast.innerHTML = '<div class="volume-toast-icon">🔊</div><div class="volume-toast-value">' + volume + '%</div><div class="volume-toast-bar"><div class="volume-toast-fill" style="width:' + volume + '%"></div></div>';
+        document.body.appendChild(toast);
+        setTimeout(function() { toast.classList.add('show'); }, 10);
+        setTimeout(function() { 
+            toast.classList.remove('show');
+            setTimeout(function() { toast.remove(); }, 300);
+        }, 1500);
+    };
+    
+    UIManager.prototype.animateNowPlaying = function() {
+        var nowPlaying = document.querySelector('.player-title');
+        if (nowPlaying) {
+            nowPlaying.classList.add('pulse');
+            setTimeout(function() { nowPlaying.classList.remove('pulse'); }, 500);
+        }
     };
     
     // ========================================
@@ -198,16 +242,16 @@
     UIManager.prototype.init = function() {
         var s = this;
         
-        // Предотвращаем двойную инициализацию
         if (this._initialized) return Promise.resolve();
         this._initialized = true;
         
-        // Скрываем лоадер
         var loader = document.getElementById('loader');
         var app = document.getElementById('app');
         if (loader && app) {
-            loader.classList.add('hidden');
-            app.classList.remove('hidden');
+            setTimeout(function() {
+                loader.classList.add('hidden');
+                app.classList.remove('hidden');
+            }, 500);
         }
         
         this.renderSidebar();
@@ -217,6 +261,7 @@
         this.bindKeys();
         this.updateSidebarServices();
         this.checkSpotify();
+        this.initWaveform();
         
         var p = storage.get('current_page', 'home');
         
@@ -227,14 +272,47 @@
             radioManager.loadStations();
         }
         
-        // Загрузка сохранённой темы
         var savedTheme = localStorage.getItem('musichub_theme');
         if (savedTheme === 'light') document.body.classList.add('light-theme');
         
-        // Обновляем сервисы в сайдбаре каждые 5 секунд
         setInterval(function() { s.updateSidebarServices(); }, 5000);
         
         return this.go(p).then(function() { s.loadStats(); });
+    };
+    
+    UIManager.prototype.initWaveform = function() {
+        var canvas = document.getElementById('waveformCanvas');
+        if (!canvas) return;
+        
+        var ctx = canvas.getContext('2d');
+        var width = canvas.width = 300;
+        var height = canvas.height = 40;
+        var bars = 50;
+        
+        function drawWaveform() {
+            if (!ctx) return;
+            ctx.clearRect(0, 0, width, height);
+            var barWidth = width / bars;
+            
+            for (var i = 0; i < bars; i++) {
+                var heightRand = Math.random() * height * 0.8;
+                var x = i * barWidth;
+                var y = height - heightRand;
+                ctx.fillStyle = '#1db954';
+                ctx.fillRect(x, y, barWidth - 1, heightRand);
+            }
+        }
+        
+        if (window.player) {
+            setInterval(function() {
+                if (player.playing) drawWaveform();
+                else {
+                    ctx.clearRect(0, 0, width, height);
+                    ctx.fillStyle = 'rgba(255,255,255,0.1)';
+                    ctx.fillRect(0, 0, width, height);
+                }
+            }, 100);
+        }
     };
     
     // ========================================
@@ -250,7 +328,14 @@
         var c = document.getElementById('content');
         if (!c) return Promise.resolve();
         
-        c.innerHTML = '<div class="loading-container"><div class="loader-spinner"></div><span>Loading...</span></div>';
+        c.style.opacity = '0';
+        c.style.transform = 'translateY(20px)';
+        
+        setTimeout(function() {
+            c.innerHTML = '<div class="loading-container"><div class="loader-spinner"></div><span>Loading...</span></div>';
+            c.style.opacity = '1';
+            c.style.transform = 'translateY(0)';
+        }, 200);
         
         var s = this;
         var pr;
@@ -280,17 +365,18 @@
         var s = this;
         var c = document.getElementById('content');
         
-        c.innerHTML = '<div class="page"><div class="page-header"><h1 class="page-title">My Music</h1><p class="page-subtitle">Independent library</p></div><div class="quick-actions">' + 
+        c.innerHTML = '<div class="page"><div class="page-header"><h1 class="page-title">Welcome back!</h1><p class="page-subtitle">Your personal music hub</p></div><div class="quick-actions">' + 
             ['upload','import','library','search'].map(function(a) {
                 var icons = {
                     upload: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>',
                     import: '<rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/>',
-                    library: '<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>',
+                    library: '<path d="M4 6h16v12H4z"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="12" y2="14"/>',
                     search: '<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>'
                 };
-                return '<div class="action-card" data-action="' + a + '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22">' + icons[a] + '</svg><span>' + a.charAt(0).toUpperCase() + a.slice(1) + '</span></div>';
+                var labels = { upload: 'Upload', import: 'Import', library: 'Library', search: 'Search' };
+                return '<div class="action-card" data-action="' + a + '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22">' + icons[a] + '</svg><span>' + labels[a] + '</span></div>';
             }).join('') + 
-            '</div><div class="section"><div class="section-header"><h2 class="section-title">Recently Added</h2></div><div id="recentTracksContainer"></div></div><div class="section"><div class="section-header"><h2 class="section-title">Playlists</h2></div><div id="homePlaylistsContainer"></div></div></div>';
+            '</div><div class="section"><div class="section-header"><h2 class="section-title">🎵 Recently Added</h2></div><div id="recentTracksContainer"></div></div><div class="section"><div class="section-header"><h2 class="section-title">📁 Your Playlists</h2></div><div id="homePlaylistsContainer"></div></div><div class="section"><div class="section-header"><h2 class="section-title">📻 Recommended Radio</h2></div><div id="radioContainer"></div></div></div>';
         
         c.querySelectorAll('.action-card').forEach(function(card) {
             card.addEventListener('click', function() { s.go(card.getAttribute('data-action')); });
@@ -301,7 +387,7 @@
             s.showSkeleton(rd, 'tracks');
             library.getRecentTracks(8).then(function(t) {
                 if (!t || t.length === 0) {
-                    rd.innerHTML = '<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg><p>No tracks yet</p><span>Upload some music to get started</span></div>';
+                    rd.innerHTML = '<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg><p>No tracks yet</p><span>Upload some music to get started</span><button class="btn btn-primary mt-4" onclick="ui.go(\'upload\')">Upload now</button></div>';
                 } else {
                     var h = '<div class="track-list">';
                     for (var i = 0; i < t.length; i++) h += s.trackRow(t[i], i);
@@ -316,7 +402,7 @@
         if (pd && window.library) {
             library.getPlaylists().then(function(pl) {
                 if (!pl || pl.length === 0) {
-                    pd.innerHTML = '<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/></svg><p>No playlists</p><span>Create your first playlist</span></div>';
+                    pd.innerHTML = '<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h20v16H2z"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="12" y2="12"/></svg><p>No playlists</p><span>Create your first playlist</span><button class="btn btn-primary mt-4" onclick="ui.showCreatePl()">Create playlist</button></div>';
                 } else {
                     var h = '<div class="playlist-grid">';
                     for (var i = 0; i < Math.min(pl.length, 6); i++) h += s.plCard(pl[i]);
@@ -327,6 +413,26 @@
                     });
                 }
             }).catch(function() { pd.innerHTML = '<div class="empty-state"><p>Error loading playlists</p></div>'; });
+        }
+        
+        var radioDiv = document.getElementById('radioContainer');
+        if (radioDiv && window.radioManager) {
+            radioDiv.innerHTML = '<div class="radio-stations">' + 
+                '<div class="radio-card" data-station="rock">🎸 Rock Radio</div>' +
+                '<div class="radio-card" data-station="jazz">🎷 Jazz Radio</div>' +
+                '<div class="radio-card" data-station="electronic">⚡ Electronic Radio</div>' +
+                '<div class="radio-card" data-station="classical">🎻 Classical Radio</div>' +
+                '</div>';
+            
+            radioDiv.querySelectorAll('.radio-card').forEach(function(card) {
+                card.addEventListener('click', function() {
+                    var station = card.getAttribute('data-station');
+                    if (window.radioManager) {
+                        radioManager.generateRadio(station);
+                        s.notify('🎵 ' + station.charAt(0).toUpperCase() + station.slice(1) + ' radio started', 'success');
+                    }
+                });
+            });
         }
         
         return Promise.resolve();
@@ -340,7 +446,7 @@
         var s = this;
         var c = document.getElementById('content');
         
-        c.innerHTML = '<div class="page"><div class="page-header"><h1 class="page-title">Library</h1><div class="library-actions"><button class="btn btn-secondary btn-sm" id="findDupBtn">Find duplicates</button><button class="btn btn-danger btn-sm" id="remDupBtn">Remove duplicates</button></div></div><div class="tabs" id="libTabs"><button class="tab active" data-tab="tracks">Tracks</button><button class="tab" data-tab="artists">Artists</button><button class="tab" data-tab="albums">Albums</button><button class="tab" data-tab="favorites">Favorites</button></div><div class="library-filters"><select id="sourceFilter" class="form-input" style="width:auto;"><option value="all">All</option><option value="local">Local</option><option value="spotify">Spotify</option><option value="youtube">YouTube</option></select><select id="sortFilter" class="form-input" style="width:auto;"><option value="dateAdded">By date</option><option value="title">By title</option><option value="artist">By artist</option><option value="playCount">By popularity</option></select></div><div id="libraryContent"></div></div>';
+        c.innerHTML = '<div class="page"><div class="page-header"><h1 class="page-title">Library</h1><p class="page-subtitle">Your music collection</p><div class="library-actions"><button class="btn btn-secondary btn-sm" id="findDupBtn">🔍 Find duplicates</button><button class="btn btn-danger btn-sm" id="remDupBtn">🗑️ Remove duplicates</button></div></div><div class="tabs" id="libTabs"><button class="tab active" data-tab="tracks">🎵 Tracks</button><button class="tab" data-tab="artists">🎤 Artists</button><button class="tab" data-tab="albums">💿 Albums</button><button class="tab" data-tab="favorites">❤️ Favorites</button></div><div class="library-filters"><select id="sourceFilter" class="form-input" style="width:auto;"><option value="all">All sources</option><option value="local">📁 Local</option><option value="spotify">🎧 Spotify</option><option value="youtube">📺 YouTube</option></select><select id="sortFilter" class="form-input" style="width:auto;"><option value="dateAdded">📅 By date</option><option value="title">🔤 By title</option><option value="artist">👤 By artist</option><option value="playCount">🔥 By popularity</option></select></div><div id="libraryContent"></div></div>';
         
         document.getElementById('libTabs').addEventListener('click', function(e) {
             var el = e.target.closest ? e.target.closest('.tab') : null;
@@ -360,13 +466,13 @@
         var remBtn = document.getElementById('remDupBtn');
         if (findBtn && window.library) {
             findBtn.addEventListener('click', function() {
-                library.getDuplicates().then(function(d) { s.notify(d.length ? 'Found ' + d.length + ' duplicates' : 'No duplicates', 'info'); });
+                library.getDuplicates().then(function(d) { s.notify(d.length ? '🔍 Found ' + d.length + ' duplicates' : '✨ No duplicates found', 'info'); });
             });
         }
         if (remBtn && window.library) {
             remBtn.addEventListener('click', function() {
-                s.confirm('Remove duplicates?', '', function() {
-                    library.removeDuplicates().then(function(r) { s.notify('Removed ' + r.length, 'success'); s.loadLib(); s.loadStats(); });
+                s.confirm('Remove duplicates?', 'This will remove duplicate tracks from your library.', function() {
+                    library.removeDuplicates().then(function(r) { s.notify('🗑️ Removed ' + r.length + ' duplicates', 'success'); s.loadLib(); s.loadStats(); });
                 });
             });
         }
@@ -392,7 +498,7 @@
             if (!window.library) return Promise.resolve();
             pr = library.getTracks({source: src, sort: srt}).then(function(t) {
                 if (!t || t.length === 0) {
-                    ct.innerHTML = '<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg><p>No tracks</p><span>Upload or import music</span></div>';
+                    ct.innerHTML = '<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg><p>No tracks found</p><span>Upload or import music to get started</span><button class="btn btn-primary mt-4" onclick="ui.go(\'upload\')">Upload now</button></div>';
                     return;
                 }
                 var h = '<div class="track-list">';
@@ -405,26 +511,37 @@
             if (!window.library) return Promise.resolve();
             pr = library.getArtists().then(function(a) {
                 if (!a || a.length === 0) {
-                    ct.innerHTML = '<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><p>No artists</p></div>';
+                    ct.innerHTML = '<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><p>No artists yet</p></div>';
                     return;
                 }
                 var h = '<div class="artist-grid">';
                 for (var i = 0; i < a.length; i++) {
-                    h += '<div class="artist-card"><div class="artist-card-avatar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="36" height="36"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div><div class="artist-card-name">' + s.esc(a[i].name) + '</div><div class="artist-card-info">' + a[i].trackCount + ' tracks</div></div>';
+                    h += '<div class="artist-card" data-artist="' + s.esc(a[i].name) + '"><div class="artist-card-avatar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="36" height="36"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div><div class="artist-card-name">' + s.esc(a[i].name) + '</div><div class="artist-card-info">' + a[i].trackCount + ' tracks</div></div>';
                 }
                 h += '</div>';
                 ct.innerHTML = h;
+                ct.querySelectorAll('.artist-card').forEach(function(card) {
+                    card.addEventListener('click', function() {
+                        var artist = card.getAttribute('data-artist');
+                        s.go('search');
+                        var searchInput = document.getElementById('globalSearch');
+                        if (searchInput) {
+                            searchInput.value = artist;
+                            s.doSearch(artist);
+                        }
+                    });
+                });
             });
         } else if (this.tab === 'albums') {
             if (!window.library) return Promise.resolve();
             pr = library.getAlbums().then(function(a) {
                 if (!a || a.length === 0) {
-                    ct.innerHTML = '<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg><p>No albums</p></div>';
+                    ct.innerHTML = '<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg><p>No albums yet</p></div>';
                     return;
                 }
                 var h = '<div class="album-grid">';
                 for (var i = 0; i < a.length; i++) {
-                    h += '<div class="album-card"><div class="album-card-cover"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="36" height="36"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg></div><div class="album-card-name">' + s.esc(a[i].name) + '</div><div class="album-card-artist">' + s.esc(a[i].artist) + '</div></div>';
+                    h += '<div class="album-card" data-album="' + s.esc(a[i].name) + '"><div class="album-card-cover"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="36" height="36"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg></div><div class="album-card-name">' + s.esc(a[i].name) + '</div><div class="album-card-artist">' + s.esc(a[i].artist) + '</div></div>';
                 }
                 h += '</div>';
                 ct.innerHTML = h;
@@ -433,7 +550,7 @@
             if (window.favorites) {
                 pr = window.favorites.getTracks().then(function(t) {
                     if (!t || t.length === 0) {
-                        ct.innerHTML = '<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg><p>No favorites</p><span>❤️ Like tracks to see them here</span></div>';
+                        ct.innerHTML = '<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg><p>No favorites yet</p><span>❤️ Like tracks to see them here</span></div>';
                         return;
                     }
                     var h = '<div class="track-list">';
@@ -447,7 +564,7 @@
             }
         }
         
-        return pr ? pr.catch(function() { ct.innerHTML = '<div class="empty-state"><p>Error</p></div>'; }) : Promise.resolve();
+        return pr ? pr.catch(function() { ct.innerHTML = '<div class="empty-state"><p>Error loading content</p></div>'; }) : Promise.resolve();
     };
     
     // ========================================
@@ -455,7 +572,7 @@
     // ========================================
     
     UIManager.prototype.searchPage = function() {
-        document.getElementById('content').innerHTML = '<div class="page"><div class="page-header"><h1 class="page-title">Search</h1></div><div id="searchResults"><div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><p>Type in the search bar</p><span>Press Ctrl+K to focus search</span></div></div></div>';
+        document.getElementById('content').innerHTML = '<div class="page"><div class="page-header"><h1 class="page-title">🔍 Search</h1><p class="page-subtitle">Find music in your library</p></div><div id="searchResults"><div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><p>Start typing to search</p><span>Press Ctrl+K to focus search bar</span></div></div></div>';
         return Promise.resolve();
     };
     
@@ -468,20 +585,20 @@
         
         var c = document.getElementById('searchResults');
         if (!c) return;
-        c.innerHTML = '<div class="loading-container"><div class="loader-spinner"></div><span>Searching...</span></div>';
+        c.innerHTML = '<div class="loading-container"><div class="loader-spinner"></div><span>Searching for "' + s.esc(q) + '"...</span></div>';
         
         if (!window.library) return;
         library.search(q).then(function(r) {
             if (!r || r.length === 0) {
-                c.innerHTML = '<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><p>Nothing found</p><span>Try a different search term</span></div>';
+                c.innerHTML = '<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><p>No results found</p><span>Try a different search term</span></div>';
                 return;
             }
-            var h = '<div class="track-list">';
+            var h = '<div class="track-list"><div class="search-stats">Found ' + r.length + ' tracks</div>';
             for (var i = 0; i < r.length; i++) h += s.trackRow(r[i], i);
             h += '</div>';
             c.innerHTML = h;
             s.bindRows(c);
-        }).catch(function() { c.innerHTML = '<div class="empty-state"><p>Error</p></div>'; });
+        }).catch(function() { c.innerHTML = '<div class="empty-state"><p>Search error</p></div>'; });
     };
     
     // ========================================
@@ -492,7 +609,7 @@
         var s = this;
         var c = document.getElementById('content');
         
-        c.innerHTML = '<div class="page"><div class="page-header"><h1 class="page-title">Upload</h1><p class="page-subtitle">MP3, WAV, FLAC, OGG, AAC, M4A</p></div><div class="upload-area" id="uploadArea"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="48" height="48"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg><p>Drag & drop files here</p><span>or</span><button class="btn btn-primary" id="selectFilesBtn">Select files</button></div><input type="file" id="fileInput" multiple accept=".mp3,.wav,.flac,.ogg,.aac,.m4a" hidden><div id="uploadProgress" class="hidden mt-4"></div></div>';
+        c.innerHTML = '<div class="page"><div class="page-header"><h1 class="page-title">📤 Upload Music</h1><p class="page-subtitle">Support: MP3, WAV, FLAC, OGG, AAC, M4A</p></div><div class="upload-area" id="uploadArea"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="48" height="48"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg><p>Drag & drop files here</p><span>or</span><button class="btn btn-primary" id="selectFilesBtn">📁 Select files</button></div><input type="file" id="fileInput" multiple accept=".mp3,.wav,.flac,.ogg,.aac,.m4a" hidden><div id="uploadProgress" class="hidden mt-4"></div><div class="upload-tips mt-4"><small class="text-muted">💡 Tip: You can select multiple files at once</small></div></div>';
         
         var a = document.getElementById('uploadArea');
         var inp = document.getElementById('fileInput');
@@ -523,35 +640,81 @@
         if (a) a.classList.add('hidden');
         if (pr) {
             pr.classList.remove('hidden');
-            pr.innerHTML = '<div class="loading-container"><div class="loader-spinner"></div><span>Uploading...</span></div>';
+            pr.innerHTML = '<div class="loading-container"><div class="loader-spinner"></div><span>Uploading ' + f.length + ' files...</span></div>';
         }
         
         if (!window.uploadManager) return;
         uploadManager.uploadFiles(f).then(function(r) {
             if (pr) {
-                pr.innerHTML = '<div class="empty-state"><p>✅ Uploaded: ' + r.uploaded.length + '</p>' + (r.failed.length ? '<span>Failed: ' + r.failed.length + '</span>' : '') + '</div>';
+                pr.innerHTML = '<div class="empty-state"><p>✅ Uploaded: ' + r.uploaded.length + '</p>' + (r.failed.length ? '<span>⚠️ Failed: ' + r.failed.length + '</span>' : '') + '</div>';
             }
-            s.notify('Done', 'success');
+            s.notify('✅ ' + r.uploaded.length + ' files uploaded successfully', 'success');
             s.loadStats();
             setTimeout(function() { 
                 if (a) a.classList.remove('hidden'); 
                 if (pr) pr.classList.add('hidden'); 
+                s.go('library');
             }, 2000);
         }).catch(function(e) { 
-            if (pr) pr.innerHTML = '<div class="empty-state"><p>Error</p></div>'; 
-            s.notify('Failed', 'error'); 
+            if (pr) pr.innerHTML = '<div class="empty-state"><p>❌ Upload error</p><span>' + e.message + '</span></div>'; 
+            s.notify('Upload failed', 'error'); 
         });
     };
     
     // ========================================
-    // IMPORT PAGE (сокращён для brevity)
+    // IMPORT PAGE
     // ========================================
     
     UIManager.prototype.importPage = function() {
         var s = this;
         var c = document.getElementById('content');
         
-        c.innerHTML = '<div class="page"><div class="page-header"><h1 class="page-title">Import</h1></div><div class="settings-section"><h2 class="settings-section-title">Coming Soon</h2><p>Import from Spotify, YouTube and more will be available in the next update.</p></div></div>';
+        c.innerHTML = '<div class="page"><div class="page-header"><h1 class="page-title">📥 Import Music</h1><p class="page-subtitle">Import from other services</p></div><div class="settings-section"><h2 class="settings-section-title">🔌 Connected Services</h2><div class="services-grid" id="importServicesGrid"></div></div><div class="settings-section"><h2 class="settings-section-title">📄 File Import</h2><div class="import-options"><div class="import-option-card" id="importJSON">📋 JSON Format</div><div class="import-option-card" id="importCSV">📊 CSV Format</div><div class="import-option-card" id="importM3U">🎵 M3U Playlist</div></div><input type="file" id="importFileInput" accept=".json,.csv,.m3u" hidden></div></div>';
+        
+        var servicesGrid = document.getElementById('importServicesGrid');
+        if (servicesGrid && window.services) {
+            var svcs = services.getAll();
+            var html = '';
+            for (var i = 0; i < svcs.length; i++) {
+                html += '<div class="service-card"><div class="service-card-header"><div class="service-card-icon">' + svcs[i].name.charAt(0) + '</div><div><div class="service-card-name">' + svcs[i].name + '</div></div></div><div class="service-card-actions"><button class="btn btn-primary btn-sm connect-service" data-service="' + svcs[i].id + '">Connect</button></div></div>';
+            }
+            servicesGrid.innerHTML = html;
+            
+            servicesGrid.querySelectorAll('.connect-service').forEach(function(btn) {
+                btn.addEventListener('click', function() { s.showConn(btn.getAttribute('data-service')); });
+            });
+        }
+        
+        var inp = document.getElementById('importFileInput');
+        document.getElementById('importJSON').addEventListener('click', function() {
+            inp.accept = '.json';
+            inp.onchange = function(e) {
+                if (e.target.files[0] && window.importer) {
+                    importer.importFromJSON(e.target.files[0]).then(function(r) { s.notify('Imported ' + r.importedCount + ' tracks', 'success'); s.loadStats(); s.go('library'); }).catch(function() { s.notify('Import failed', 'error'); });
+                }
+            };
+            inp.click();
+        });
+        
+        document.getElementById('importCSV').addEventListener('click', function() {
+            inp.accept = '.csv';
+            inp.onchange = function(e) {
+                if (e.target.files[0] && window.importer) {
+                    importer.importFromCSV(e.target.files[0]).then(function(r) { s.notify('Imported ' + r.importedCount + ' tracks', 'success'); s.loadStats(); s.go('library'); }).catch(function() { s.notify('Import failed', 'error'); });
+                }
+            };
+            inp.click();
+        });
+        
+        document.getElementById('importM3U').addEventListener('click', function() {
+            inp.accept = '.m3u';
+            inp.onchange = function(e) {
+                if (e.target.files[0] && window.importer) {
+                    importer.importFromM3U(e.target.files[0]).then(function(r) { s.notify('Imported ' + r.importedCount + ' tracks', 'success'); s.loadStats(); s.go('library'); }).catch(function() { s.notify('Import failed', 'error'); });
+                }
+            };
+            inp.click();
+        });
         
         return Promise.resolve();
     };
@@ -567,10 +730,10 @@
         if (!window.library) return Promise.resolve();
         
         return library.getPlaylists().then(function(pl) {
-            var h = '<div class="page"><div class="page-header"><h1 class="page-title">Playlists</h1><button class="btn btn-primary" id="createPlBtn">+ Create</button></div>';
+            var h = '<div class="page"><div class="page-header"><h1 class="page-title">📋 Playlists</h1><p class="page-subtitle">Organize your music</p><button class="btn btn-primary" id="createPlBtn">+ Create New Playlist</button></div>';
             
             if (!pl || pl.length === 0) {
-                h += '<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/></svg><p>No playlists</p><span>Create your first playlist</span></div>';
+                h += '<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h20v16H2z"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="12" y2="12"/></svg><p>No playlists yet</p><span>Create your first playlist to organize your music</span><button class="btn btn-primary mt-4" onclick="ui.showCreatePl()">Create playlist</button></div>';
             } else {
                 h += '<div class="playlist-grid">';
                 for (var i = 0; i < pl.length; i++) h += s.plCard(pl[i]);
@@ -596,7 +759,7 @@
         var s = this;
         var c = document.getElementById('content');
         
-        var h = '<div class="page"><div class="page-header"><h1 class="page-title">Settings</h1></div><div class="settings-section"><h2 class="settings-section-title">Appearance</h2><div class="data-actions"><button class="btn btn-secondary" id="themeToggleBtn">🌓 Switch Theme</button></div></div><div class="settings-section"><h2 class="settings-section-title">Data</h2><div class="data-actions"><button class="btn btn-secondary" id="exportDataBtn">Export JSON</button><button class="btn btn-danger" id="clearDataBtn">Clear all data</button></div></div></div>';
+        var h = '<div class="page"><div class="page-header"><h1 class="page-title">⚙️ Settings</h1><p class="page-subtitle">Customize your experience</p></div><div class="settings-section"><h2 class="settings-section-title">🎨 Appearance</h2><div class="data-actions"><button class="btn btn-secondary" id="themeToggleBtn">🌓 Switch Theme</button></div></div><div class="settings-section"><h2 class="settings-section-title">🔊 Audio</h2><div class="data-actions"><select id="audioQuality" class="form-input"><option value="low">Low Quality (96kbps)</option><option value="medium" selected>Medium Quality (192kbps)</option><option value="high">High Quality (320kbps)</option></select></div></div><div class="settings-section"><h2 class="settings-section-title">💾 Data Management</h2><div class="data-actions"><button class="btn btn-secondary" id="exportDataBtn">📤 Export Library (JSON)</button><button class="btn btn-secondary" id="exportLibraryM3UBtn">📁 Export Library (M3U)</button><button class="btn btn-danger" id="clearDataBtn">🗑️ Clear All Data</button></div></div><div class="settings-section"><h2 class="settings-section-title">ℹ️ About</h2><div class="data-actions"><p class="text-muted">MusicHub v1.0.0 - Your personal music platform</p><p class="text-muted">© 2026 MusicHub. All rights reserved.</p></div></div></div>';
         
         c.innerHTML = h;
         
@@ -612,14 +775,27 @@
         var exportBtn = document.getElementById('exportDataBtn');
         if (exportBtn) exportBtn.addEventListener('click', function() { s.exportLib(); });
         
+        var exportM3UBtn = document.getElementById('exportLibraryM3UBtn');
+        if (exportM3UBtn && window.exportManager) exportM3UBtn.addEventListener('click', function() { exportManager.exportLibrary(); });
+        
+        var qualitySelect = document.getElementById('audioQuality');
+        if (qualitySelect) {
+            var savedQuality = localStorage.getItem('audio_quality') || 'medium';
+            qualitySelect.value = savedQuality;
+            qualitySelect.addEventListener('change', function() {
+                localStorage.setItem('audio_quality', qualitySelect.value);
+                s.notify('Audio quality changed to ' + qualitySelect.value, 'success');
+            });
+        }
+        
         var clearBtn = document.getElementById('clearDataBtn');
         if (clearBtn && window.db) {
             clearBtn.addEventListener('click', function() {
-                s.confirm('Clear all data?', 'This will delete all tracks, playlists and settings. This cannot be undone!', function() {
+                s.confirm('Clear all data?', '⚠️ This will delete ALL tracks, playlists and settings. This action cannot be undone!', function() {
                     db.clearAll().then(function() {
                         storage.remove('play_history');
                         storage.remove('queue');
-                        localStorage.removeItem('musichub_theme');
+                        localStorage.clear();
                         s.notify('All data cleared', 'success');
                         s.loadStats();
                         s.go('home');
@@ -638,17 +814,17 @@
     UIManager.prototype.trackRow = function(t, i) {
         if (!t) return '';
         var d = (window.player && t.duration) ? player.fmt(t.duration / 1000) : '--:--';
-        var src = t.source === 'local' ? 'My file' : (t.source || 'unknown');
+        var src = t.source === 'local' ? '📁' : (t.source === 'spotify' ? '🎧' : (t.source === 'youtube' ? '📺' : '🎵'));
         var isFav = (window.favorites && window.favorites.isFavorite(t.id)) ? true : false;
-        var favIcon = isFav ? '❤️' : '♡';
+        var favIcon = isFav ? '❤️' : '🤍';
         
-        return '<div class="track-row" data-track=\'' + this.esc(JSON.stringify(t)) + '\'><span class="track-row-index">' + (i + 1) + '</span><div class="track-row-info"><div class="track-row-cover-placeholder"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="16" height="16"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></div><div class="track-row-text"><div class="track-row-title">' + this.esc(t.title) + '</div><div class="track-row-artist">' + this.esc(t.artist) + '</div></div></div><span class="track-row-source">' + this.esc(src) + '</span><span class="track-row-duration">' + d + '</span><span class="track-row-fav" style="cursor:pointer;text-align:center;">' + favIcon + '</span></div>';
+        return '<div class="track-row" data-track=\'' + this.esc(JSON.stringify(t)) + '\'><span class="track-row-index">' + (i + 1) + '</span><div class="track-row-info"><div class="track-row-cover-placeholder"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="16" height="16"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></div><div class="track-row-text"><div class="track-row-title">' + this.esc(t.title) + '</div><div class="track-row-artist">' + this.esc(t.artist) + '</div></div></div><span class="track-row-source">' + src + '</span><span class="track-row-duration">' + d + '</span><span class="track-row-fav" style="cursor:pointer;text-align:center;">' + favIcon + '</span></div>';
     };
     
     UIManager.prototype.plCard = function(p) {
         if (!p) return '';
         var c = p.tracks ? p.tracks.length : 0;
-        return '<div class="playlist-card" data-playlist-id="' + p.id + '"><div class="playlist-card-cover"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="36" height="36"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></div><div class="playlist-card-name">' + this.esc(p.name) + '</div><div class="playlist-card-count">' + c + ' tracks</div></div>';
+        return '<div class="playlist-card" data-playlist-id="' + p.id + '"><div class="playlist-card-cover"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="36" height="36"><path d="M2 4h20v16H2z"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="12" y2="12"/></svg></div><div class="playlist-card-name">' + this.esc(p.name) + '</div><div class="playlist-card-count">' + c + ' tracks</div></div>';
     };
     
     // ========================================
@@ -668,6 +844,7 @@
                         var t = JSON.parse(row.getAttribute('data-track'));
                         if (window.player) player.play(t);
                         if (window.queueManager) queueManager.add(t);
+                        s.animateNowPlaying();
                     } catch(e) {}
                 });
                 
@@ -680,8 +857,8 @@
                             if (window.favorites) {
                                 window.favorites.toggle(t);
                                 var isFav = window.favorites.isFavorite(t.id);
-                                favSpan.textContent = isFav ? '❤️' : '♡';
-                                s.notify(isFav ? 'Added to favorites' : 'Removed from favorites', 'success');
+                                favSpan.textContent = isFav ? '❤️' : '🤍';
+                                s.notify(isFav ? '❤️ Added to favorites' : '🤍 Removed from favorites', 'success');
                                 if (s.page === 'library' && s.tab === 'favorites') s.loadLib();
                             }
                         } catch(e) {}
@@ -697,15 +874,24 @@
                         var track = JSON.parse(trackData);
                         var isFav = window.favorites ? window.favorites.isFavorite(track.id) : false;
                         var items = [
-                            { label: '▶ Play now', action: function() { if (window.player) player.play(track); } },
-                            { label: '📋 Add to queue', action: function() { if (window.queueManager) queueManager.add(track); } },
-                            { label: isFav ? '❤️ Remove from favorites' : '♡ Add to favorites', action: function() {
+                            { label: '▶ Play now', action: function() { if (window.player) player.play(track); s.animateNowPlaying(); } },
+                            { label: '📋 Add to queue', action: function() { if (window.queueManager) queueManager.add(track); s.notify('Added to queue', 'success'); } },
+                            { label: isFav ? '❤️ Remove from favorites' : '🤍 Add to favorites', action: function() {
                                 if (window.favorites) {
                                     window.favorites.toggle(track);
                                     var newIsFav = window.favorites.isFavorite(track.id);
-                                    if (favSpan) favSpan.textContent = newIsFav ? '❤️' : '♡';
+                                    if (favSpan) favSpan.textContent = newIsFav ? '❤️' : '🤍';
                                     s.notify(newIsFav ? 'Added to favorites' : 'Removed from favorites', 'success');
                                     if (s.page === 'library' && s.tab === 'favorites') s.loadLib();
+                                }
+                            } },
+                            { label: '📁 Add to playlist', action: function() { s.showAddPl(track.id); } },
+                            { label: '🎵 Go to artist', action: function() {
+                                s.go('search');
+                                var searchInput = document.getElementById('globalSearch');
+                                if (searchInput) {
+                                    searchInput.value = track.artist;
+                                    s.doSearch(track.artist);
                                 }
                             } },
                             { label: '🗑️ Delete', action: function() {
@@ -732,12 +918,42 @@
     // MODALS
     // ========================================
     
+    UIManager.prototype.showConn = function(id) {
+        var s = this;
+        var o = document.getElementById('modal-overlay');
+        var ct = document.getElementById('modal-content');
+        var h = '';
+        
+        if (id === 'spotify') {
+            h = '<div class="modal-header"><h3 class="modal-title">🎧 Connect Spotify</h3><span class="modal-close">×</span></div><div class="form-group"><label class="form-label">Client ID</label><input type="text" class="form-input" id="modalInp" placeholder="Enter your Spotify Client ID"></div><button class="btn btn-primary" id="modalSub" style="width:100%;">Connect</button>';
+        } else if (id === 'youtube') {
+            h = '<div class="modal-header"><h3 class="modal-title">📺 Connect YouTube</h3><span class="modal-close">×</span></div><div class="form-group"><label class="form-label">API Key</label><input type="text" class="form-input" id="modalInp" placeholder="Enter your YouTube API Key"></div><button class="btn btn-primary" id="modalSub" style="width:100%;">Connect</button>';
+        } else {
+            h = '<div class="modal-header"><h3 class="modal-title">🔌 Connect ' + id + '</h3><span class="modal-close">×</span></div><div class="form-group"><label class="form-label">API Key</label><input type="text" class="form-input" id="modalInp" placeholder="Enter API Key"></div><button class="btn btn-primary" id="modalSub" style="width:100%;">Connect</button>';
+        }
+        
+        ct.innerHTML = h;
+        o.classList.remove('hidden');
+        
+        var close = function() { o.classList.add('hidden'); };
+        ct.querySelector('.modal-close').addEventListener('click', close);
+        o.addEventListener('click', function(e) { if (e.target === o) close(); });
+        
+        document.getElementById('modalSub').addEventListener('click', function() {
+            var v = document.getElementById('modalInp').value.trim();
+            if (!v) return;
+            if (id === 'spotify' && window.services) services.connectSpotify(v);
+            else if (id === 'youtube' && window.services) { services.connectYouTube(v); close(); s.notify('Connected', 'success'); s.go('settings'); }
+            else if (window.services) { services.connect(id, v); close(); s.notify('Connected', 'success'); s.go('settings'); }
+        });
+    };
+    
     UIManager.prototype.showCreatePl = function() {
         var s = this;
         var o = document.getElementById('modal-overlay');
         var ct = document.getElementById('modal-content');
         
-        ct.innerHTML = '<div class="modal-header"><h3 class="modal-title">New Playlist</h3><span class="modal-close">×</span></div><div class="form-group"><label class="form-label">Name</label><input type="text" class="form-input" id="plName" placeholder="Playlist name"></div><button class="btn btn-primary" id="savePl" style="width:100%;">Create</button>';
+        ct.innerHTML = '<div class="modal-header"><h3 class="modal-title">📝 Create New Playlist</h3><span class="modal-close">×</span></div><div class="form-group"><label class="form-label">Playlist Name</label><input type="text" class="form-input" id="plName" placeholder="My Awesome Playlist" autofocus></div><div class="form-group"><label class="form-label">Description (optional)</label><textarea class="form-input" id="plDesc" rows="3" placeholder="Add a description..."></textarea></div><button class="btn btn-primary" id="savePl" style="width:100%;">✨ Create Playlist</button>';
         o.classList.remove('hidden');
         
         var close = function() { o.classList.add('hidden'); };
@@ -746,14 +962,17 @@
         
         document.getElementById('savePl').addEventListener('click', function() {
             var n = document.getElementById('plName').value.trim() || 'New Playlist';
+            var d = document.getElementById('plDesc').value.trim();
             if (window.library) {
-                library.createPlaylist(n, '').then(function() {
-                    s.notify('Created', 'success');
+                library.createPlaylist(n, d).then(function() {
+                    s.notify('✅ Playlist "' + n + '" created', 'success');
                     close();
                     s.go('playlists');
                 });
             }
         });
+        
+        document.getElementById('plName').focus();
     };
     
     UIManager.prototype.showPlModal = function(id) {
@@ -765,11 +984,13 @@
         library.getPlaylist(id).then(function(pl) {
             if (!pl) return;
             library.getPlaylistTracks(id).then(function(t) {
-                var h = '<div class="modal-header"><h3 class="modal-title">' + s.esc(pl.name) + '</h3><span class="modal-close">×</span></div><p class="text-muted text-sm mb-4">' + (t ? t.length : 0) + ' tracks</p><div class="track-list">';
+                var h = '<div class="modal-header"><h3 class="modal-title">📁 ' + s.esc(pl.name) + '</h3><span class="modal-close">×</span></div>';
+                if (pl.description) h += '<p class="text-muted text-sm mb-4">' + s.esc(pl.description) + '</p>';
+                h += '<p class="text-muted text-sm mb-4">' + (t ? t.length : 0) + ' tracks</p><div class="track-list" style="max-height:400px;overflow-y:auto;">';
                 if (t) {
                     for (var i = 0; i < t.length; i++) h += s.trackRow(t[i], i);
                 }
-                h += '</div><div class="mt-4" style="display:flex;gap:8px;flex-wrap:wrap;"><button class="btn btn-secondary btn-sm" id="playAllBtn">▶ Play all</button><button class="btn btn-danger btn-sm" id="delPlBtn">🗑️ Delete</button></div>';
+                h += '</div><div class="mt-4" style="display:flex;gap:8px;flex-wrap:wrap;"><button class="btn btn-primary btn-sm" id="playAllBtn">▶ Play all</button><button class="btn btn-secondary btn-sm" id="exportPlBtn">📁 Export M3U</button><button class="btn btn-danger btn-sm" id="delPlBtn">🗑️ Delete Playlist</button></div>';
                 ct.innerHTML = h;
                 o.classList.remove('hidden');
                 
@@ -786,17 +1007,27 @@
                             for (var i = 0; i < t.length; i++) queueManager.add(t[i]);
                             player.play(t[0]);
                             close();
+                            s.notify('Playing playlist: ' + pl.name, 'success');
                         }
+                    });
+                }
+                
+                var exportBtn = document.getElementById('exportPlBtn');
+                if (exportBtn && window.exportManager && t) {
+                    exportBtn.addEventListener('click', function() {
+                        exportManager.exportAsM3U(t, pl.name + '.m3u');
                     });
                 }
                 
                 var delBtn = document.getElementById('delPlBtn');
                 if (delBtn) {
                     delBtn.addEventListener('click', function() {
-                        library.deletePlaylist(id).then(function() {
-                            s.notify('Deleted', 'success');
-                            close();
-                            s.go('playlists');
+                        s.confirm('Delete playlist', 'Delete "' + pl.name + '"?', function() {
+                            library.deletePlaylist(id).then(function() {
+                                s.notify('Playlist deleted', 'success');
+                                close();
+                                s.go('playlists');
+                            });
                         });
                     });
                 }
@@ -804,11 +1035,48 @@
         });
     };
     
+    UIManager.prototype.showAddPl = function(tid) {
+        var s = this;
+        var o = document.getElementById('modal-overlay');
+        var ct = document.getElementById('modal-content');
+        
+        if (!window.library) return;
+        library.getPlaylists().then(function(pl) {
+            var h = '<div class="modal-header"><h3 class="modal-title">📁 Add to playlist</h3><span class="modal-close">×</span></div>';
+            if (!pl || pl.length === 0) {
+                h += '<p class="text-muted">No playlists yet. Create one first.</p>';
+            } else {
+                for (var i = 0; i < pl.length; i++) {
+                    h += '<div class="playlist-option" data-id="' + pl[i].id + '">📁 ' + s.esc(pl[i].name) + ' (' + (pl[i].tracks ? pl[i].tracks.length : 0) + ' tracks)</div>';
+                }
+            }
+            h += '<button class="btn btn-secondary btn-sm mt-4" id="newPlBtn">+ Create new playlist</button>';
+            ct.innerHTML = h;
+            o.classList.remove('hidden');
+            
+            var close = function() { o.classList.add('hidden'); };
+            ct.querySelector('.modal-close').addEventListener('click', close);
+            o.addEventListener('click', function(e) { if (e.target === o) close(); });
+            
+            ct.querySelectorAll('.playlist-option').forEach(function(opt) {
+                opt.addEventListener('click', function() {
+                    library.addToPlaylist(opt.getAttribute('data-id'), tid).then(function() {
+                        s.notify('Added to playlist', 'success');
+                        close();
+                    });
+                });
+            });
+            
+            var newBtn = document.getElementById('newPlBtn');
+            if (newBtn) newBtn.addEventListener('click', function() { close(); s.showCreatePl(); });
+        });
+    };
+    
     UIManager.prototype.confirm = function(title, message, callback) {
         var o = document.getElementById('modal-overlay');
         var ct = document.getElementById('modal-content');
         
-        ct.innerHTML = '<div class="modal-header"><h3 class="modal-title">' + title + '</h3><span class="modal-close">×</span></div><p class="mb-4" style="color:var(--text-secondary);">' + message + '</p><div style="display:flex;gap:8px;"><button class="btn btn-secondary" id="cancelBtn">Cancel</button><button class="btn btn-danger" id="confirmBtn">Confirm</button></div>';
+        ct.innerHTML = '<div class="modal-header"><h3 class="modal-title">⚠️ ' + title + '</h3><span class="modal-close">×</span></div><p class="mb-4" style="color:var(--text-secondary);">' + message + '</p><div style="display:flex;gap:8px;"><button class="btn btn-secondary" id="cancelBtn">Cancel</button><button class="btn btn-danger" id="confirmBtn">Confirm</button></div>';
         o.classList.remove('hidden');
         
         var close = function() { o.classList.add('hidden'); };
@@ -831,15 +1099,38 @@
         var shuffleBtn = document.getElementById('shuffleBtn');
         var repeatBtn = document.getElementById('repeatBtn');
         var volumeSlider = document.getElementById('volumeSlider');
+        var volumeBtn = document.getElementById('volumeBtn');
         var progressBar = document.getElementById('progressBar');
         var addToPlaylistBtn = document.getElementById('playerAddToPlaylistBtn');
         
         if (playBtn && window.player) playBtn.addEventListener('click', function() { player.toggle(); });
-        if (prevBtn && window.queueManager) prevBtn.addEventListener('click', function() { var p = queueManager.prev(); if (p && window.player) player.play(p); });
-        if (nextBtn && window.queueManager) nextBtn.addEventListener('click', function() { var n = queueManager.next(); if (n && window.player) player.play(n); });
+        if (prevBtn && window.queueManager) prevBtn.addEventListener('click', function() { var p = queueManager.prev(); if (p && window.player) player.play(p); s.animateNowPlaying(); });
+        if (nextBtn && window.queueManager) nextBtn.addEventListener('click', function() { var n = queueManager.next(); if (n && window.player) player.play(n); s.animateNowPlaying(); });
         if (shuffleBtn && window.queueManager) shuffleBtn.addEventListener('click', function() { queueManager.toggleShuffle(); });
         if (repeatBtn && window.queueManager) repeatBtn.addEventListener('click', function() { queueManager.toggleRepeat(); });
-        if (volumeSlider && window.player) volumeSlider.addEventListener('input', function(e) { player.setVolume(e.target.value / 100); });
+        
+        if (volumeSlider && window.player) {
+            volumeSlider.addEventListener('input', function(e) { 
+                player.setVolume(e.target.value / 100);
+                s.volumeBeforeMute = e.target.value;
+            });
+        }
+        
+        if (volumeBtn && window.player) {
+            volumeBtn.addEventListener('click', function() {
+                var currentVol = volumeSlider.value;
+                if (currentVol > 0) {
+                    s.volumeBeforeMute = currentVol;
+                    volumeSlider.value = 0;
+                    player.setVolume(0);
+                    s.notify('🔇 Muted', 'info');
+                } else {
+                    volumeSlider.value = s.volumeBeforeMute;
+                    player.setVolume(s.volumeBeforeMute / 100);
+                    s.notify('🔊 Unmuted', 'info');
+                }
+            });
+        }
         
         if (progressBar && window.player) {
             progressBar.addEventListener('click', function(e) {
@@ -854,53 +1145,25 @@
             addToPlaylistBtn.addEventListener('click', function() {
                 var t = window.player ? player.track : null;
                 if (t) s.showAddPl(t.id);
+                else s.notify('No track playing', 'info');
             });
         }
-    };
-    
-    UIManager.prototype.showAddPl = function(tid) {
-        var s = this;
-        var o = document.getElementById('modal-overlay');
-        var ct = document.getElementById('modal-content');
-        
-        if (!window.library) return;
-        library.getPlaylists().then(function(pl) {
-            var h = '<div class="modal-header"><h3 class="modal-title">Add to playlist</h3><span class="modal-close">×</span></div>';
-            if (!pl || pl.length === 0) {
-                h += '<p class="text-muted">No playlists yet. Create one first.</p>';
-            } else {
-                for (var i = 0; i < pl.length; i++) {
-                    h += '<div class="playlist-option" data-id="' + pl[i].id + '">📁 ' + s.esc(pl[i].name) + ' (' + (pl[i].tracks ? pl[i].tracks.length : 0) + ')</div>';
-                }
-            }
-            h += '<button class="btn btn-secondary btn-sm mt-4" id="newPlBtn">+ New playlist</button>';
-            ct.innerHTML = h;
-            o.classList.remove('hidden');
-            
-            var close = function() { o.classList.add('hidden'); };
-            ct.querySelector('.modal-close').addEventListener('click', close);
-            o.addEventListener('click', function(e) { if (e.target === o) close(); });
-            
-            ct.querySelectorAll('.playlist-option').forEach(function(opt) {
-                opt.addEventListener('click', function() {
-                    library.addToPlaylist(opt.getAttribute('data-id'), tid).then(function() {
-                        s.notify('Added to playlist', 'success');
-                        close();
-                    });
-                });
-            });
-            
-            var newBtn = document.getElementById('newPlBtn');
-            if (newBtn) newBtn.addEventListener('click', function() { close(); s.showCreatePl(); });
-        });
     };
     
     UIManager.prototype.updatePlayerUI = function() {
         var t = window.player ? player.track : null;
         var titleEl = document.getElementById('playerTitle');
         var artistEl = document.getElementById('playerArtist');
+        var coverEl = document.getElementById('playerCover');
+        
         if (titleEl) titleEl.textContent = t ? t.title : 'Nothing playing';
         if (artistEl) artistEl.textContent = t ? t.artist : 'Select a track';
+        
+        if (coverEl && t) {
+            coverEl.style.animation = 'none';
+            coverEl.offsetHeight;
+            coverEl.style.animation = 'pulse 0.5s ease';
+        }
         
         var icon = document.getElementById('playIcon');
         var isPlaying = window.player ? player.playing : false;
@@ -908,6 +1171,17 @@
             icon.innerHTML = isPlaying ? 
                 '<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>' : 
                 '<polygon points="5 3 19 12 5 21 5 3"/>';
+        }
+        
+        var shuffleBtn = document.getElementById('shuffleBtn');
+        var repeatBtn = document.getElementById('repeatBtn');
+        if (shuffleBtn && window.queueManager) {
+            if (queueManager.shuffle) shuffleBtn.classList.add('active');
+            else shuffleBtn.classList.remove('active');
+        }
+        if (repeatBtn && window.queueManager) {
+            if (queueManager.repeat !== 'none') repeatBtn.classList.add('active');
+            else repeatBtn.classList.remove('active');
         }
     };
     
@@ -951,7 +1225,7 @@
     UIManager.prototype.checkSpotify = function() {
         if (window.services && services.checkSpotifyCallback) {
             if (services.checkSpotifyCallback()) {
-                this.notify('Spotify connected', 'success');
+                this.notify('🎧 Spotify connected', 'success');
                 this.loadStats();
             }
         }
@@ -965,12 +1239,12 @@
             var u = URL.createObjectURL(b);
             var a = document.createElement('a');
             a.href = u;
-            a.download = 'musichub-' + new Date().toISOString().split('T')[0] + '.json';
+            a.download = 'musichub-backup-' + new Date().toISOString().split('T')[0] + '.json';
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(u);
-            s.notify('Library exported', 'success');
+            s.notify('📤 Library exported', 'success');
         }).catch(function() { s.notify('Export failed', 'error'); });
     };
     
@@ -980,8 +1254,7 @@
         
         var e = document.createElement('div');
         e.className = 'notification ' + (type || 'info');
-        var icon = type === 'success' ? '✅ ' : (type === 'error' ? '❌ ' : 'ℹ️ ');
-        e.textContent = icon + msg;
+        e.innerHTML = '<span>' + msg + '</span>';
         c.appendChild(e);
         
         setTimeout(function() {
@@ -1000,6 +1273,6 @@
         return div.innerHTML;
     };
     
-    // Инициализируем глобальный объект
+    // Глобальный экземпляр
     window.ui = new UIManager();
 })();
