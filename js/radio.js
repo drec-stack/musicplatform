@@ -4,88 +4,152 @@
     function RadioManager() {
         this.stations = [];
         this.currentStation = null;
+        this.isPlaying = false;
         this.audio = null;
-        this.playing = false;
-        this.events = [];
-        this.loadStations();
+        this.init();
     }
     
+    RadioManager.prototype.init = function() {
+        this.stations = [
+            { id: 'rock', name: 'Rock Classics', url: 'https://stream.rockradio.com/rock', genre: 'rock', color: '#ff4444' },
+            { id: 'jazz', name: 'Jazz Vibes', url: 'https://stream.jazzradio.com/jazz', genre: 'jazz', color: '#44ff44' },
+            { id: 'electronic', name: 'Electronic Beats', url: 'https://stream.electronicradio.com/electronic', genre: 'electronic', color: '#4444ff' },
+            { id: 'classical', name: 'Classical Masters', url: 'https://stream.classicalradio.com/classical', genre: 'classical', color: '#ffaa44' },
+            { id: 'pop', name: 'Pop Hits', url: 'https://stream.popradio.com/pop', genre: 'pop', color: '#ff44ff' },
+            { id: 'hiphop', name: 'Hip Hop Underground', url: 'https://stream.hiphopradio.com/hiphop', genre: 'hiphop', color: '#44ffaa' },
+            { id: 'folk', name: 'Folk Acoustic', url: 'https://stream.folkradio.com/folk', genre: 'folk', color: '#aa44ff' },
+            { id: 'ambient', name: 'Ambient Relax', url: 'https://stream.ambientradio.com/ambient', genre: 'ambient', color: '#88aaff' }
+        ];
+        
+        this.audio = new Audio();
+        this.audio.addEventListener('ended', function() {
+            this.playNext();
+        }.bind(this));
+    };
+    
     RadioManager.prototype.loadStations = function() {
-        var saved = storage.get('radio_stations', null);
-        if (saved && saved.length) {
-            this.stations = saved;
-        } else {
-            // Станции по умолчанию
-            this.stations = [
-                { id: 'radio1', name: 'Radio Paradise', url: 'https://stream.radioparadise.com/mp3-192', genre: 'eclectic' },
-                { id: 'radio2', name: 'SomaFM: Groove Salad', url: 'https://ice4.somafm.com/groovesalad-128-mp3', genre: 'chill' },
-                { id: 'radio3', name: 'BBC Radio 1', url: 'http://stream.live.vc.bbcmedia.co.uk/bbc_radio_one', genre: 'pop' }
-            ];
-            this.saveStations();
+        // Станции уже загружены в init
+        if (window.ui) {
+            // Обновляем UI если нужно
         }
     };
     
-    RadioManager.prototype.saveStations = function() {
-        storage.set('radio_stations', this.stations);
+    RadioManager.prototype.getStations = function() {
+        return this.stations;
     };
     
-    RadioManager.prototype.addStation = function(name, url, genre) {
-        var id = Date.now().toString(36) + Math.random().toString(36).substr(2, 4);
-        var station = { id: id, name: name, url: url, genre: genre || 'custom' };
-        this.stations.push(station);
-        this.saveStations();
-        this.emit('stations_updated', this.stations);
-        return station;
+    RadioManager.prototype.getStation = function(id) {
+        return this.stations.find(function(s) { return s.id === id; });
     };
     
-    RadioManager.prototype.removeStation = function(stationId) {
-        this.stations = this.stations.filter(function(s) { return s.id !== stationId; });
-        this.saveStations();
-        this.emit('stations_updated', this.stations);
-        return true;
-    };
-    
-    RadioManager.prototype.playStation = function(station) {
-        if (this.audio) {
-            this.audio.pause();
-            this.audio = null;
+    RadioManager.prototype.playStation = function(stationId) {
+        var station = this.getStation(stationId);
+        if (!station) return false;
+        
+        if (this.currentStation && this.currentStation.id === stationId && this.isPlaying) {
+            this.stop();
+            return false;
         }
         
         this.currentStation = station;
-        // Используем CORS-прокси (если сервер есть) или прямой URL
-        var streamUrl = station.url;
         
-        this.audio = new Audio(streamUrl);
-        this.audio.play().catch(function(e) { console.error('Radio error:', e); });
-        this.playing = true;
-        this.emit('station_playing', station);
+        // В реальном приложении здесь был бы URL стрима
+        // this.audio.src = station.url;
+        // this.audio.play();
+        
+        // Для демо генерируем плейлист из библиотеки
+        this.generateStationPlaylist(station);
+        
+        if (window.ui) {
+            window.ui.notify('📻 Now playing: ' + station.name, 'success');
+        }
+        
+        return true;
+    };
+    
+    RadioManager.prototype.generateStationPlaylist = function(station) {
+        var self = this;
+        
+        if (!window.library) return;
+        
+        library.getTracks().then(function(tracks) {
+            // Фильтруем треки по жанру (упрощённо - по артисту)
+            var filteredTracks = tracks.filter(function(track) {
+                var artistLower = (track.artist || '').toLowerCase();
+                var titleLower = (track.title || '').toLowerCase();
+                
+                switch(station.genre) {
+                    case 'rock':
+                        return artistLower.includes('rock') || titleLower.includes('rock');
+                    case 'jazz':
+                        return artistLower.includes('jazz') || titleLower.includes('jazz');
+                    case 'electronic':
+                        return artistLower.includes('electronic') || artistLower.includes('electro') || titleLower.includes('electronic');
+                    case 'classical':
+                        return artistLower.includes('classical') || artistLower.includes('symphony') || titleLower.includes('classical');
+                    default:
+                        return true;
+                }
+            });
+            
+            if (filteredTracks.length > 0 && window.queueManager && window.player) {
+                queueManager.clear();
+                filteredTracks.forEach(function(track) {
+                    queueManager.add(track);
+                });
+                player.play(filteredTracks[0]);
+            }
+        });
+    };
+    
+    RadioManager.prototype.generateArtistRadio = function(artistName) {
+        var self = this;
+        
+        if (!window.library) return;
+        
+        library.getTracks().then(function(tracks) {
+            var artistLower = artistName.toLowerCase();
+            var relatedTracks = tracks.filter(function(track) {
+                return (track.artist && track.artist.toLowerCase() === artistLower) ||
+                       (track.artist && track.artist.toLowerCase().includes(artistLower));
+            });
+            
+            if (relatedTracks.length === 0) {
+                // Если нет треков этого артиста, берём похожие
+                relatedTracks = tracks.filter(function(track) {
+                    return track.artist && track.artist.toLowerCase() !== artistLower;
+                }).slice(0, 20);
+            }
+            
+            if (relatedTracks.length > 0 && window.queueManager && window.player) {
+                queueManager.clear();
+                relatedTracks.forEach(function(track) {
+                    queueManager.add(track);
+                });
+                player.play(relatedTracks[0]);
+                
+                if (window.ui) {
+                    window.ui.notify('🎵 Radio station created for: ' + artistName, 'success');
+                }
+            }
+        });
     };
     
     RadioManager.prototype.stop = function() {
         if (this.audio) {
             this.audio.pause();
-            this.audio = null;
+            this.audio.currentTime = 0;
         }
-        this.playing = false;
+        this.isPlaying = false;
         this.currentStation = null;
-        this.emit('station_stopped');
     };
     
-    RadioManager.prototype.generateArtistRadio = async function(artistName) {
-        var self = this;
-        var tracks = await library.search(artistName);
-        var similar = tracks.filter(function(t) {
-            return t.artist && t.artist.toLowerCase().indexOf(artistName.toLowerCase()) !== -1;
-        });
-        this.emit('radio_generated', { artist: artistName, tracks: similar });
-        return similar;
-    };
-    
-    // Event emitter
-    RadioManager.prototype.on = function(e, cb) { this.events.push({e:e, cb:cb}); };
-    RadioManager.prototype.emit = function(e, d) {
-        for(var i=0;i<this.events.length;i++) {
-            if(this.events[i].e === e) this.events[i].cb(d);
+    RadioManager.prototype.playNext = function() {
+        if (window.queueManager) {
+            var next = queueManager.next();
+            if (next && window.player) {
+                player.play(next);
+            }
         }
     };
     
