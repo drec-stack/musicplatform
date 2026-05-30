@@ -1,10 +1,7 @@
-/* ========================================
-   PLAYER
-   ======================================== */
 .player {
     position: fixed;
     bottom: 0;
-    left: var(--sidebar-width);
+    left: 260px;
     right: 0;
     background: rgba(10, 10, 15, 0.95);
     backdrop-filter: blur(20px);
@@ -20,72 +17,41 @@
     gap: 24px;
 }
 
-/* Track Info */
 .player-track {
     display: flex;
     align-items: center;
     gap: 14px;
-    min-width: 240px;
+    min-width: 220px;
 }
 
-.track-cover {
-    width: 52px;
-    height: 52px;
+.player-cover {
+    width: 48px;
+    height: 48px;
     background: rgba(255, 255, 255, 0.05);
-    border-radius: var(--radius-md);
+    border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
-.track-cover svg {
-    width: 26px;
-    height: 26px;
-    color: var(--text-tertiary);
+.player-cover svg {
+    width: 24px;
+    height: 24px;
 }
 
-.track-info {
-    flex: 1;
-}
-
-.track-title {
+.player-title {
     font-weight: 500;
     font-size: 14px;
-    margin-bottom: 4px;
 }
 
-.track-artist {
+.player-artist {
     font-size: 12px;
-    color: var(--text-tertiary);
+    color: #7a7a7a;
 }
 
-.track-fav {
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: 8px;
-}
-
-.track-fav svg {
-    width: 18px;
-    height: 18px;
-    color: var(--text-tertiary);
-    transition: var(--transition);
-}
-
-.track-fav:hover svg {
-    color: var(--accent);
-}
-
-.track-fav.active svg {
-    color: var(--accent);
-    fill: var(--accent);
-}
-
-/* Controls */
 .player-controls {
     flex: 1;
-    max-width: 500px;
+    max-width: 400px;
 }
 
 .control-buttons {
@@ -93,7 +59,7 @@
     align-items: center;
     justify-content: center;
     gap: 20px;
-    margin-bottom: 12px;
+    margin-bottom: 8px;
 }
 
 .control-btn {
@@ -102,43 +68,33 @@
     cursor: pointer;
     padding: 8px;
     border-radius: 50%;
-    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .control-btn svg {
     width: 20px;
     height: 20px;
-    color: var(--text-secondary);
-}
-
-.control-btn:hover {
-    background: rgba(255, 255, 255, 0.05);
+    color: #b3b3b3;
 }
 
 .control-btn:hover svg {
-    color: var(--text-primary);
-}
-
-.control-btn.active svg {
-    color: var(--accent);
+    color: #fff;
 }
 
 .play-btn {
-    background: var(--accent);
+    background: #1db954;
+    width: 40px;
+    height: 40px;
 }
 
 .play-btn svg {
-    color: white;
+    color: #fff;
     width: 22px;
     height: 22px;
 }
 
-.play-btn:hover {
-    background: var(--accent-hover);
-    transform: scale(1.02);
-}
-
-/* Progress */
 .progress-container {
     display: flex;
     align-items: center;
@@ -147,7 +103,7 @@
 
 .time-current, .time-total {
     font-size: 12px;
-    color: var(--text-tertiary);
+    color: #7a7a7a;
     min-width: 40px;
 }
 
@@ -157,115 +113,52 @@
     background: rgba(255, 255, 255, 0.1);
     border-radius: 10px;
     cursor: pointer;
-    position: relative;
 }
 
 .progress-fill {
     height: 100%;
-    background: var(--accent);
+    background: #1db954;
     border-radius: 10px;
     width: 0%;
-    position: relative;
 }
 
-.progress-bar:hover .progress-fill::after {
-    content: '';
-    position: absolute;
-    right: -6px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 12px;
-    height: 12px;
-    background: white;
-    border-radius: 50%;
-    box-shadow: 0 0 8px var(--accent);
-}
-
-/* Volume */
 .player-volume {
     display: flex;
     align-items: center;
     gap: 12px;
-    min-width: 140px;
-    justify-content: flex-end;
-}
-
-.volume-btn {
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: 8px;
-    border-radius: 50%;
-}
-
-.volume-btn svg {
-    width: 18px;
-    height: 18px;
-    color: var(--text-secondary);
+    min-width: 120px;
 }
 
 .volume-slider {
-    width: 100px;
+    width: 80px;
     height: 4px;
     -webkit-appearance: none;
     background: rgba(255, 255, 255, 0.1);
     border-radius: 10px;
-    cursor: pointer;
 }
 
 .volume-slider::-webkit-slider-thumb {
     -webkit-appearance: none;
     width: 12px;
     height: 12px;
-    background: var(--accent);
+    background: #1db954;
     border-radius: 50%;
     cursor: pointer;
 }
 
-/* Responsive */
-@media (max-width: 900px) {
+@media (max-width: 768px) {
     .player {
         left: 200px;
     }
-    
     .player-track {
-        min-width: 200px;
-    }
-    
-    .player-volume {
-        min-width: 100px;
-    }
-    
-    .volume-slider {
-        width: 70px;
-    }
-}
-
-@media (max-width: 768px) {
-    .player {
-        left: 0;
-        padding: 10px 16px;
-    }
-    
-    .player-track {
-        min-width: 160px;
-    }
-    
-    .track-cover {
-        width: 44px;
-        height: 44px;
-    }
-    
-    .control-buttons {
-        gap: 12px;
-    }
-    
-    .volume-slider {
-        width: 60px;
+        min-width: 180px;
     }
 }
 
 @media (max-width: 640px) {
+    .player {
+        left: 0;
+    }
     .player-volume {
         display: none;
     }
