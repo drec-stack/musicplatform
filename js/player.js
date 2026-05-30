@@ -11,8 +11,7 @@
             pause: [],
             track_change: [],
             progress: [],
-            ended: [],
-            no_source: []
+            ended: []
         };
         this.init();
     }
@@ -36,10 +35,6 @@
             self.playing = false;
             self.emit('ended');
         });
-        
-        this.audio.addEventListener('error', function() {
-            self.emit('no_source');
-        });
     };
     
     Player.prototype.play = function(track) {
@@ -48,16 +43,16 @@
         this.currentTrack = track;
         this.emit('track_change', track);
         
-        if (track.file || track.url) {
-            this.audio.src = track.file || track.url;
+        if (track.file) {
+            this.audio.src = track.file;
             this.audio.play().catch(function(e) {
-                console.error('Play error:', e);
-                self.emit('no_source');
+                console.warn('Play error:', e);
+                self.emit('ended');
             });
             this.playing = true;
             this.emit('play');
         } else {
-            // Демо режим без реального аудио
+            // Для демо-треков используем симуляцию
             this.playing = true;
             this.emit('play');
             this.simulatePlayback();
