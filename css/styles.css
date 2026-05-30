@@ -12,11 +12,12 @@ body {
     height: 100vh;
 }
 
+/* Упрощённый фон для Safari */
 .bg {
     position: fixed;
     inset: 0;
-    background: radial-gradient(ellipse at 30% 40%, rgba(29, 185, 84, 0.08) 0%, transparent 50%),
-                radial-gradient(ellipse at 70% 60%, rgba(30, 215, 96, 0.05) 0%, transparent 50%);
+    background: radial-gradient(ellipse at 30% 40%, rgba(29, 185, 84, 0.06) 0%, transparent 50%),
+                radial-gradient(ellipse at 70% 60%, rgba(30, 215, 96, 0.04) 0%, transparent 50%);
     z-index: -1;
 }
 
@@ -56,21 +57,20 @@ body {
     opacity: 1;
 }
 
-/* Sidebar */
+/* Sidebar - без backdrop-filter для Safari */
 .sidebar {
     width: 260px;
-    background: rgba(18, 18, 26, 0.95);
-    backdrop-filter: blur(20px);
+    background: #12121a;
     display: flex;
     flex-direction: column;
-    border-right: 1px solid rgba(255, 255, 255, 0.06);
+    border-right: 1px solid rgba(255, 255, 255, 0.08);
 }
 .logo {
     display: flex;
     align-items: center;
     gap: 12px;
     padding: 24px 20px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     font-size: 18px;
     font-weight: 600;
     color: #1db954;
@@ -112,8 +112,8 @@ body {
 }
 .stats {
     padding: 20px;
-    border-top: 1px solid rgba(255, 255, 255, 0.06);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 .stats-title {
     font-size: 11px;
@@ -145,7 +145,7 @@ body {
     padding: 20px;
 }
 
-/* Main */
+/* Main - без backdrop-filter */
 .main {
     flex: 1;
     display: flex;
@@ -154,9 +154,8 @@ body {
 }
 .topbar {
     height: 64px;
-    background: rgba(10, 10, 15, 0.8);
-    backdrop-filter: blur(20px);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    background: #0a0a0f;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -178,7 +177,7 @@ body {
 .search-input {
     width: 100%;
     background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     padding: 10px 16px 10px 44px;
     border-radius: 40px;
     color: #fff;
@@ -248,8 +247,8 @@ body {
     margin-bottom: 48px;
 }
 .action-card {
-    background: rgba(30, 30, 42, 0.7);
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    background: #1a1a24;
+    border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 12px;
     padding: 20px;
     text-align: center;
@@ -284,15 +283,15 @@ body {
     align-items: center;
     gap: 16px;
     padding: 12px 16px;
-    background: rgba(30, 30, 42, 0.5);
-    border: 1px solid rgba(255, 255, 255, 0.03);
+    background: #1a1a24;
+    border: 1px solid rgba(255, 255, 255, 0.05);
     border-radius: 10px;
     cursor: pointer;
     transition: all 0.2s;
 }
 .track-item:hover {
-    background: rgba(37, 37, 48, 0.7);
-    border-color: rgba(29, 185, 84, 0.2);
+    background: #252530;
+    border-color: rgba(29, 185, 84, 0.3);
 }
 .track-index {
     width: 28px;
@@ -355,8 +354,8 @@ body {
     gap: 20px;
 }
 .playlist-card {
-    background: rgba(30, 30, 42, 0.6);
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    background: #1a1a24;
+    border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 12px;
     padding: 16px;
     text-align: center;
@@ -460,8 +459,8 @@ body {
 
 /* Settings */
 .settings-section {
-    background: rgba(30, 30, 42, 0.6);
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    background: #1a1a24;
+    border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 12px;
     padding: 24px;
     margin-bottom: 20px;
