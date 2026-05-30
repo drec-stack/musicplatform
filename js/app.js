@@ -3,8 +3,8 @@
 // ========================================
 
 (function() {
-    // Рендер треков
-    function renderTracks(tracksList, containerId, showFav = true) {
+    function renderTracks(tracksList, containerId, showFav) {
+        if (showFav === undefined) showFav = true;
         var container = document.getElementById(containerId);
         if (!container) return;
         
@@ -28,8 +28,9 @@
                 '<div class="track-duration">' + window.formatTime(track.duration) + '</div>';
             
             if (showFav) {
+                var fillColor = track.favorite ? '#1db954' : 'none';
                 html += '<button class="track-fav" data-id="' + track.id + '">' +
-                    '<svg viewBox="0 0 24 24" fill="' + (track.favorite ? '#1db954' : 'none') + '" stroke="currentColor" stroke-width="1.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>' +
+                    '<svg viewBox="0 0 24 24" fill="' + fillColor + '" stroke="currentColor" stroke-width="1.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>' +
                 '</button>';
             }
             
@@ -37,44 +38,45 @@
         }
         container.innerHTML = html;
         
-        container.querySelectorAll('.track-item').forEach(function(item) {
-            item.addEventListener('click', function(e) {
-                if (e.target.closest('.track-fav')) return;
-                var id = item.dataset.id;
-                var track = window.AppState.tracks.find(function(t) { return t.id === id; });
-                if (track) playTrack(track);
-            });
-            
-            var favBtn = item.querySelector('.track-fav');
-            if (favBtn) {
-                favBtn.addEventListener('click', function(e) {
-                    e.stopPropagation();
-                    var id = favBtn.dataset.id;
+        var items = container.querySelectorAll('.track-item');
+        for (var i = 0; i < items.length; i++) {
+            (function(item) {
+                item.addEventListener('click', function(e) {
+                    if (e.target.closest('.track-fav')) return;
+                    var id = item.dataset.id;
                     var track = window.AppState.tracks.find(function(t) { return t.id === id; });
-                    if (track) {
-                        track.favorite = !track.favorite;
-                        window.saveData();
-                        renderCurrentPage();
-                        window.showToast(track.favorite ? 'В избранном' : 'Удалено из избранного');
-                    }
+                    if (track) playTrack(track);
                 });
-            }
-        });
+                
+                var favBtn = item.querySelector('.track-fav');
+                if (favBtn) {
+                    favBtn.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        var id = favBtn.dataset.id;
+                        var track = window.AppState.tracks.find(function(t) { return t.id === id; });
+                        if (track) {
+                            track.favorite = !track.favorite;
+                            window.saveData();
+                            renderCurrentPage();
+                            window.showToast(track.favorite ? 'В избранном' : 'Удалено из избранного');
+                        }
+                    });
+                }
+            })(items[i]);
+        }
     }
     
-    // Рендер плейлистов
     function renderPlaylists() {
         var container = document.getElementById('playlistsContainer');
         if (!container) return;
         
         if (window.AppState.playlists.length === 0) {
             container.innerHTML = '<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h20v16H2z"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="12" y2="12"/></svg><p>Нет плейлистов</p><button class="btn-primary" id="createEmptyBtn">Создать плейлист</button></div>';
-                    
-                    var createBtn = document.getElementById('createEmptyBtn');
-                    if (createBtn) {
-                        createBtn.addEventListener('click', function() { showCreatePlaylistModal(); });
-                    }
-                    return;
+            var createBtn = document.getElementById('createEmptyBtn');
+            if (createBtn) {
+                createBtn.addEventListener('click', function() { showCreatePlaylistModal(); });
+            }
+            return;
         }
         
         var html = '<div class="playlist-grid">';
@@ -89,14 +91,16 @@
         html += '</div>';
         container.innerHTML = html;
         
-        container.querySelectorAll('.playlist-card').forEach(function(card) {
-            card.addEventListener('click', function() {
-                showPlaylistDetail(card.dataset.id);
-            });
-        });
+        var cards = container.querySelectorAll('.playlist-card');
+        for (var i = 0; i < cards.length; i++) {
+            (function(card) {
+                card.addEventListener('click', function() {
+                    showPlaylistDetail(card.dataset.id);
+                });
+            })(cards[i]);
+        }
     }
     
-    // Показать детали плейлиста
     function showPlaylistDetail(id) {
         var playlist = window.AppState.playlists.find(function(p) { return p.id === id; });
         if (!playlist) return;
@@ -139,7 +143,6 @@
         });
     }
     
-    // Создание плейлиста
     function showCreatePlaylistModal() {
         var modal = document.getElementById('modal');
         var input = document.getElementById('modalInput');
@@ -150,10 +153,7 @@
         var confirmBtn = document.getElementById('modalConfirm');
         var closeBtn = document.getElementById('modalClose');
         
-        var oldConfirm = confirmBtn.onclick;
-        var oldClose = closeBtn.onclick;
-        
-        confirmBtn.onclick = function() {
+        var newConfirm = function() {
             var name = input.value.trim();
             if (name) {
                 var newPlaylist = {
@@ -167,17 +167,16 @@
                 goToPage('playlists');
                 window.showToast('Плейлист создан');
             }
-            confirmBtn.onclick = oldConfirm;
-            closeBtn.onclick = oldClose;
         };
         
-        closeBtn.onclick = function() {
+        var newClose = function() {
             modal.classList.remove('show');
-            closeBtn.onclick = oldClose;
         };
+        
+        confirmBtn.onclick = newConfirm;
+        closeBtn.onclick = newClose;
     }
     
-    // Воспроизведение
     function playTrack(track) {
         if (window.AppState.progressInterval) clearInterval(window.AppState.progressInterval);
         
@@ -194,14 +193,19 @@
             if (window.AppState.isPlaying && current < duration) {
                 current++;
                 var percent = (current / duration) * 100;
-                document.getElementById('progressFill').style.width = percent + '%';
-                document.getElementById('currentTime').textContent = window.formatTime(current);
-                document.getElementById('totalTime').textContent = window.formatTime(duration);
+                var fill = document.getElementById('progressFill');
+                var currentTime = document.getElementById('currentTime');
+                var totalTime = document.getElementById('totalTime');
+                if (fill) fill.style.width = percent + '%';
+                if (currentTime) currentTime.textContent = window.formatTime(current);
+                if (totalTime) totalTime.textContent = window.formatTime(duration);
             } else if (current >= duration) {
                 clearInterval(window.AppState.progressInterval);
                 window.AppState.isPlaying = false;
-                document.getElementById('progressFill').style.width = '0%';
-                document.getElementById('currentTime').textContent = '0:00';
+                var fill = document.getElementById('progressFill');
+                var currentTime = document.getElementById('currentTime');
+                if (fill) fill.style.width = '0%';
+                if (currentTime) currentTime.textContent = '0:00';
             }
         }, 1000);
     }
@@ -217,7 +221,6 @@
         }
     }
     
-    // Рендер страницы
     function renderCurrentPage() {
         var container = document.getElementById('content');
         var page = window.AppState.currentPage;
@@ -241,11 +244,14 @@
             
             renderTracks(recent, 'recentTracks', true);
             
-            document.querySelectorAll('.action-card').forEach(function(card) {
-                card.addEventListener('click', function() {
-                    goToPage(card.dataset.page);
-                });
-            });
+            var actions = document.querySelectorAll('.action-card');
+            for (var i = 0; i < actions.length; i++) {
+                (function(action) {
+                    action.addEventListener('click', function() {
+                        goToPage(action.dataset.page);
+                    });
+                })(actions[i]);
+            }
             
         } else if (page === 'library') {
             container.innerHTML = '<div class="page">' +
@@ -268,9 +274,12 @@
             
             renderPlaylists();
             
-            document.getElementById('createPlaylistBtn').addEventListener('click', function() {
-                showCreatePlaylistModal();
-            });
+            var createBtn = document.getElementById('createPlaylistBtn');
+            if (createBtn) {
+                createBtn.addEventListener('click', function() {
+                    showCreatePlaylistModal();
+                });
+            }
             
         } else if (page === 'settings') {
             container.innerHTML = '<div class="page">' +
@@ -290,41 +299,49 @@
                 '</div>' +
             '</div>';
             
-            document.getElementById('exportDataBtn').addEventListener('click', function() {
-                var data = { tracks: window.AppState.tracks, playlists: window.AppState.playlists };
-                var blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
-                var url = URL.createObjectURL(blob);
-                var a = document.createElement('a');
-                a.href = url;
-                a.download = 'musichub-backup.json';
-                a.click();
-                URL.revokeObjectURL(url);
-                window.showToast('Экспорт завершён');
-            });
+            var exportBtn = document.getElementById('exportDataBtn');
+            if (exportBtn) {
+                exportBtn.addEventListener('click', function() {
+                    var data = { tracks: window.AppState.tracks, playlists: window.AppState.playlists };
+                    var blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+                    var url = URL.createObjectURL(blob);
+                    var a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'musichub-backup.json';
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    window.showToast('Экспорт завершён');
+                });
+            }
             
-            document.getElementById('clearDataBtn').addEventListener('click', function() {
-                if (confirm('Удалить все данные? Отменить нельзя!')) {
-                    window.AppState.tracks = [];
-                    window.AppState.playlists = [];
-                    window.saveData();
-                    window.updateStats();
-                    goToPage('home');
-                    window.showToast('Данные очищены');
-                }
-            });
+            var clearBtn = document.getElementById('clearDataBtn');
+            if (clearBtn) {
+                clearBtn.addEventListener('click', function() {
+                    if (confirm('Удалить все данные? Отменить нельзя!')) {
+                        window.AppState.tracks = [];
+                        window.AppState.playlists = [];
+                        window.saveData();
+                        window.updateStats();
+                        goToPage('home');
+                        window.showToast('Данные очищены');
+                    }
+                });
+            }
         }
         
         updateActiveNav();
     }
     
     function updateActiveNav() {
-        document.querySelectorAll('.nav-item').forEach(function(item) {
+        var items = document.querySelectorAll('.nav-item');
+        for (var i = 0; i < items.length; i++) {
+            var item = items[i];
             if (item.dataset.page === window.AppState.currentPage) {
                 item.classList.add('active');
             } else {
                 item.classList.remove('active');
             }
-        });
+        }
     }
     
     function goToPage(page) {
@@ -332,29 +349,40 @@
         renderCurrentPage();
     }
     
-    // Инициализация
     function init() {
         window.loadData();
         renderCurrentPage();
         window.updateStats();
         
-        document.querySelectorAll('.nav-item').forEach(function(item) {
-            item.addEventListener('click', function() {
-                goToPage(item.dataset.page);
-            });
-        });
+        var navItems = document.querySelectorAll('.nav-item');
+        for (var i = 0; i < navItems.length; i++) {
+            (function(item) {
+                item.addEventListener('click', function() {
+                    goToPage(item.dataset.page);
+                });
+            })(navItems[i]);
+        }
         
-        document.getElementById('playBtn').addEventListener('click', togglePlay);
-        document.getElementById('prevBtn').addEventListener('click', function() {
-            if (!window.AppState.currentTrack) return;
-            var index = window.AppState.tracks.findIndex(function(t) { return t.id === window.AppState.currentTrack.id; });
-            if (index > 0) playTrack(window.AppState.tracks[index - 1]);
-        });
-        document.getElementById('nextBtn').addEventListener('click', function() {
-            if (!window.AppState.currentTrack) return;
-            var index = window.AppState.tracks.findIndex(function(t) { return t.id === window.AppState.currentTrack.id; });
-            if (index < window.AppState.tracks.length - 1) playTrack(window.AppState.tracks[index + 1]);
-        });
+        var playBtn = document.getElementById('playBtn');
+        if (playBtn) playBtn.addEventListener('click', togglePlay);
+        
+        var prevBtn = document.getElementById('prevBtn');
+        if (prevBtn) {
+            prevBtn.addEventListener('click', function() {
+                if (!window.AppState.currentTrack) return;
+                var index = window.AppState.tracks.findIndex(function(t) { return t.id === window.AppState.currentTrack.id; });
+                if (index > 0) playTrack(window.AppState.tracks[index - 1]);
+            });
+        }
+        
+        var nextBtn = document.getElementById('nextBtn');
+        if (nextBtn) {
+            nextBtn.addEventListener('click', function() {
+                if (!window.AppState.currentTrack) return;
+                var index = window.AppState.tracks.findIndex(function(t) { return t.id === window.AppState.currentTrack.id; });
+                if (index < window.AppState.tracks.length - 1) playTrack(window.AppState.tracks[index + 1]);
+            });
+        }
         
         var volumeSlider = document.getElementById('volumeSlider');
         if (volumeSlider) {
@@ -362,18 +390,13 @@
                 var vol = e.target.value;
                 var volBtn = document.getElementById('volumeBtn');
                 if (volBtn) {
-                    volBtn.innerHTML = vol == 0 ? '🔇' : (vol < 30 ? '🔈' : (vol < 70 ? '🔉' : '🔊'));
+                    var icon = '';
+                    if (vol == 0) icon = '🔇';
+                    else if (vol < 30) icon = '🔈';
+                    else if (vol < 70) icon = '🔉';
+                    else icon = '🔊';
+                    volBtn.innerHTML = icon;
                 }
-            });
-        }
-        
-        var progressBar = document.getElementById('progressBar');
-        if (progressBar) {
-            progressBar.addEventListener('click', function(e) {
-                if (!window.AppState.currentTrack) return;
-                var rect = progressBar.getBoundingClientRect();
-                var percent = (e.clientX - rect.left) / rect.width;
-                // Перемотка
             });
         }
         
