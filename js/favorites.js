@@ -12,7 +12,6 @@
         var saved = storage.get('favorites', []);
         this.favorites = saved;
         
-        // Обновляем из базы данных
         db.getAllTracks().then(function(tracks) {
             tracks.forEach(function(track) {
                 if (track.favorite && !self.favorites.includes(track.id)) {
