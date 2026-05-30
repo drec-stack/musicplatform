@@ -13,7 +13,7 @@
                 a.download = 'musichub-library-' + new Date().toISOString().split('T')[0] + '.json';
                 a.click();
                 URL.revokeObjectURL(url);
-                if (window.ui) ui.notify('Library exported', 'success');
+                if (window.ui) ui.notify('Библиотека экспортирована', 'success');
             });
         }
     };
@@ -23,7 +23,7 @@
         
         var m3uContent = '#EXTM3U\n';
         tracks.forEach(function(track) {
-            m3uContent += '#EXTINF:' + (track.duration || 0) + ',' + track.artist + ' - ' + track.title + '\n';
+            m3uContent += '#EXTINF:' + (track.duration || 0) + ',' + (track.artist || 'Unknown') + ' - ' + (track.title || 'Untitled') + '\n';
             m3uContent += track.file || track.url || track.title + '.mp3\n';
         });
         
@@ -35,7 +35,7 @@
         a.click();
         URL.revokeObjectURL(url);
         
-        if (window.ui) ui.notify('Playlist exported', 'success');
+        if (window.ui) ui.notify('Плейлист экспортирован', 'success');
     };
     
     window.exportManager = new ExportManager();
