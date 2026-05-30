@@ -329,14 +329,14 @@
     };
     
     // ========================================
-    // LIBRARY PAGE - С СОРТИРОВКОЙ И ФИЛЬТРАЦИЕЙ
+    // LIBRARY PAGE
     // ========================================
     
     UIManager.prototype.libPage = function() {
         var s = this;
         var c = document.getElementById('content');
         
-        c.innerHTML = '<div class="page"><div class="page-header"><h1 class="page-title">Библиотека</h1><p class="page-subtitle">Вся ваша музыка в одном месте</p><div class="library-actions"><button class="btn btn-secondary btn-sm" id="findDupBtn">🔍 Найти дубликаты</button><button class="btn btn-danger btn-sm" id="remDupBtn">🗑️ Удалить дубликаты</button></div></div><div class="tabs" id="libTabs"><button class="tab active" data-tab="tracks">🎵 Треки</button><button class="tab" data-tab="artists">🎤 Артисты</button><button class="tab" data-tab="albums">💿 Альбомы</button><button class="tab" data-tab="favorites">❤️ Избранное</button></div><div class="library-filters"><select id="sortFilter" class="form-input" style="width:auto;"><option value="dateAdded">📅 По дате</option><option value="title">🔤 По названию</option><option value="artist">👤 По артисту</option></select><select id="sourceFilter" class="form-input" style="width:auto;"><option value="all">📁 Все источники</option><option value="local">💾 Локальные</option></select></div><div id="libraryContent"></div></div>';
+        c.innerHTML = '<div class="page"><div class="page-header"><h1 class="page-title">Библиотека</h1><p class="page-subtitle">Вся ваша музыка в одном месте</p><div class="library-actions"><button class="btn btn-secondary btn-sm" id="findDupBtn">🔍 Найти дубликаты</button><button class="btn btn-danger btn-sm" id="remDupBtn">🗑️ Удалить дубликаты</button></div></div><div class="tabs" id="libTabs"><button class="tab active" data-tab="tracks">🎵 Треки</button><button class="tab" data-tab="artists">🎤 Артисты</button><button class="tab" data-tab="albums">💿 Альбомы</button><button class="tab" data-tab="favorites">❤️ Избранное</button></div><div class="library-filters"><select id="sortFilter" class="form-input" style="width:auto;"><option value="dateAdded">📅 По дате</option><option value="title">🔤 По названию</option><option value="artist">👤 По артисту</option></select><select id="sourceFilter" class="form-input" style="width:auto;"><option value="all">📁 Все источники</option><option value="local">💾 Локальные</option><option value="demo">🎵 Демо</option></select></div><div id="libraryContent"></div></div>';
         
         document.getElementById('libTabs').addEventListener('click', function(e) {
             var el = e.target.closest ? e.target.closest('.tab') : null;
@@ -641,15 +641,15 @@
     UIManager.prototype.trackRow = function(t, i) {
         if (!t) return '';
         var d = (window.player && t.duration) ? player.fmt(t.duration / 1000) : '--:--';
-        var src = t.source === 'local' ? '📁' : (t.source === 'spotify' ? '🎧' : '🎵');
+        var src = t.source === 'local' ? '📁' : (t.source === 'demo' ? '🎵' : (t.source === 'spotify' ? '🎧' : '🎵'));
         var isFav = (window.favorites && window.favorites.isFavorite(t.id)) ? true : false;
         var favIcon = isFav ? '❤️' : '🤍';
         
-        return '<div class="track-row" data-track=\'' + this.esc(JSON.stringify(t)) + '\'><span class="track-row-index">' + (i + 1) + '</span><div class="track-row-info"><div class="track-row-cover-placeholder">🎵</div><div class="track-row-text"><div class="track-row-title">' + this.esc(t.title) + '</div><div class="track-row-artist">' + this.esc(t.artist) + '</div></div></div><span class="track-row-source">' + src + '</span><span class="track-row-duration">' + d + '</span><span class="track-row-fav">' + favIcon + '</span></div>';
+        return '<div class="track-row" data-track=\'' + this.esc(JSON.stringify(t)) + '\'><span class="track-row-index">' + (i + 1) + '</span><div class="track-row-info"><div class="track-row-cover-placeholder">' + src + '</div><div class="track-row-text"><div class="track-row-title">' + this.esc(t.title) + '</div><div class="track-row-artist">' + this.esc(t.artist) + '</div></div></div><span class="track-row-source">' + src + '</span><span class="track-row-duration">' + d + '</span><span class="track-row-fav">' + favIcon + '</span></div>';
     };
     
     // ========================================
-    // BIND ROWS - С УДАЛЕНИЕМ ТРЕКОВ
+    // BIND ROWS
     // ========================================
     
     UIManager.prototype.bindRows = function(c) {
@@ -663,11 +663,13 @@
                     if (e.target.classList && e.target.classList.contains('track-row-fav')) return;
                     try {
                         var t = JSON.parse(row.getAttribute('data-track'));
-                        if (window.player) player.play(t);
+                        if (window.player) {
+                            player.play(t);
+                            var equalizer = document.getElementById('playerEqualizer');
+                            if (equalizer) equalizer.style.display = 'flex';
+                        }
                         if (window.queueManager) queueManager.add(t);
-                        var equalizer = document.getElementById('playerEqualizer');
-                        if (equalizer) equalizer.style.display = 'flex';
-                    } catch(e) {}
+                    } catch(e) { console.error(e); }
                 });
                 
                 var favSpan = row.querySelector('.track-row-fav');
@@ -683,80 +685,9 @@
                                 s.notify(isFav ? '❤️ Добавлено в избранное' : '🤍 Удалено из избранного', 'success');
                                 if (s.page === 'library' && s.tab === 'favorites') s.loadLib();
                             }
-                        } catch(e) {}
+                        } catch(e) { console.error(e); }
                     });
                 }
-                
-                // КОНТЕКСТНОЕ МЕНЮ (ПРАВЫЙ КЛИК) ДЛЯ УДАЛЕНИЯ
-                row.addEventListener('contextmenu', function(e) {
-                    e.preventDefault();
-                    var trackData = row.getAttribute('data-track');
-                    if (!trackData) return;
-                    
-                    try {
-                        var track = JSON.parse(trackData);
-                        var isFav = window.favorites ? window.favorites.isFavorite(track.id) : false;
-                        
-                        // Создаём кастомное меню
-                        var menu = document.createElement('div');
-                        menu.className = 'context-menu';
-                        menu.style.cssText = 'position:fixed;background:#1a1a24;border-radius:8px;padding:8px;box-shadow:0 4px 12px rgba(0,0,0,0.3);z-index:9999;min-width:180px;';
-                        menu.innerHTML = `
-                            <div class="context-item" data-action="play" style="padding:10px 16px;cursor:pointer;border-radius:6px;">▶ Воспроизвести</div>
-                            <div class="context-item" data-action="queue" style="padding:10px 16px;cursor:pointer;border-radius:6px;">📋 Добавить в очередь</div>
-                            <div class="context-item" data-action="favorite" style="padding:10px 16px;cursor:pointer;border-radius:6px;">${isFav ? '❤️ Удалить из избранного' : '🤍 Добавить в избранное'}</div>
-                            <div class="context-item" data-action="playlist" style="padding:10px 16px;cursor:pointer;border-radius:6px;">📁 Добавить в плейлист</div>
-                            <div class="context-divider" style="height:1px;background:#333;margin:8px 0;"></div>
-                            <div class="context-item" data-action="delete" style="padding:10px 16px;cursor:pointer;border-radius:6px;color:#dc3545;">🗑️ Удалить</div>
-                        `;
-                        
-                        document.body.appendChild(menu);
-                        menu.style.left = e.clientX + 'px';
-                        menu.style.top = e.clientY + 'px';
-                        
-                        // Проверка выхода за границы
-                        var rect = menu.getBoundingClientRect();
-                        if (rect.right > window.innerWidth) menu.style.left = (window.innerWidth - rect.width - 10) + 'px';
-                        if (rect.bottom > window.innerHeight) menu.style.top = (window.innerHeight - rect.height - 10) + 'px';
-                        
-                        var closeMenu = function() { if (menu && menu.parentNode) menu.parentNode.removeChild(menu); };
-                        document.addEventListener('click', closeMenu, { once: true });
-                        
-                        menu.querySelectorAll('.context-item').forEach(function(item) {
-                            item.addEventListener('mouseenter', function() { this.style.background = '#2a2a3a'; });
-                            item.addEventListener('mouseleave', function() { this.style.background = 'transparent'; });
-                            item.addEventListener('click', function(e) {
-                                e.stopPropagation();
-                                var action = this.dataset.action;
-                                if (action === 'play' && window.player) player.play(track);
-                                if (action === 'queue' && window.queueManager) {
-                                    queueManager.add(track);
-                                    s.notify('Добавлено в очередь', 'success');
-                                }
-                                if (action === 'favorite' && window.favorites) {
-                                    window.favorites.toggle(track);
-                                    var newIsFav = window.favorites.isFavorite(track.id);
-                                    if (favSpan) favSpan.textContent = newIsFav ? '❤️' : '🤍';
-                                    s.notify(newIsFav ? 'Добавлено в избранное' : 'Удалено из избранного', 'success');
-                                }
-                                if (action === 'playlist') s.showAddPl(track.id);
-                                if (action === 'delete') {
-                                    s.confirm('Удалить трек', 'Удалить "' + track.title + '"?', function() {
-                                        if (window.db) {
-                                            db.deleteTrack(track.id).then(function() {
-                                                if (window.favorites) window.favorites.remove(track.id);
-                                                s.loadLib();
-                                                s.loadStats();
-                                                s.notify('Трек удален', 'success');
-                                            });
-                                        }
-                                    });
-                                }
-                                closeMenu();
-                            });
-                        });
-                    } catch(e) {}
-                });
             })(rows[i]);
         }
     };
