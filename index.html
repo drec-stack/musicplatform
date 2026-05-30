@@ -9,6 +9,13 @@
     <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="css/player.css">
     <link rel="stylesheet" href="css/themes.css">
+    <!-- Polyfill для старых браузеров -->
+    <script>
+        // Проверка поддержки CSS Custom Properties
+        if (!window.CSS || !CSS.supports('color', 'var(--test)')) {
+            alert('Ваш браузер устарел. Пожалуйста, обновите его для лучшего опыта.');
+        }
+    </script>
 </head>
 <body>
     <!-- РЕАЛИСТИЧНЫЙ ВОДНЫЙ ФОН -->
@@ -105,7 +112,6 @@
         <!-- Player Footer -->
         <footer id="player">
             <div class="player-container">
-                <!-- Track Info Block -->
                 <div class="player-track-block">
                     <div class="player-cover" id="playerCover">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="26" height="26">
@@ -133,7 +139,6 @@
                     </div>
                 </div>
                 
-                <!-- Player Controls Block -->
                 <div class="player-controls-block">
                     <div class="player-buttons">
                         <button class="player-btn" id="shuffleBtn" title="Shuffle">🔀</button>
@@ -155,7 +160,6 @@
                     </div>
                 </div>
                 
-                <!-- Volume Control Block -->
                 <div class="player-volume-block">
                     <button class="player-volume-btn" id="volumeBtn" title="Volume">🔊</button>
                     <input type="range" class="player-volume-slider" id="volumeSlider" min="0" max="100" value="70">
@@ -164,15 +168,12 @@
         </footer>
     </div>
     
-    <!-- Modals -->
     <div id="modal-overlay" class="modal-overlay hidden">
         <div class="modal-content" id="modal-content"></div>
     </div>
     
-    <!-- Notifications -->
     <div class="notification-container" id="notificationContainer"></div>
 
-    <!-- Initialization Scripts -->
     <script>
         // Проверка поддержки IndexedDB
         if (!window.indexedDB) {
