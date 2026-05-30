@@ -13,74 +13,139 @@
         return; 
     }
     
-    // СОЗДАНИЕ ДЕМО-ТРЕКОВ
-    function createDemoTracks() {
-        return db.getAllTracks().then(function(tracks) {
-            if (tracks.length === 0) {
-                console.log('Creating demo tracks...');
-                var demoTracks = [
-                    {
-                        id: 'demo-1',
-                        title: 'Midnight Dreams',
-                        artist: 'Electronic Beats',
-                        album: 'Night Sessions',
-                        duration: 214,
-                        source: 'demo',
-                        favorite: false,
-                        dateAdded: Date.now() - 86400000,
-                        size: 0
-                    },
-                    {
-                        id: 'demo-2',
-                        title: 'Urban Flow',
-                        artist: 'City Lights',
-                        album: 'Metropolis',
-                        duration: 183,
-                        source: 'demo',
-                        favorite: false,
-                        dateAdded: Date.now() - 172800000,
-                        size: 0
-                    },
-                    {
-                        id: 'demo-3',
-                        title: 'Chill Session',
-                        artist: 'Lofi Study',
-                        album: 'Relaxation',
-                        duration: 245,
-                        source: 'demo',
-                        favorite: false,
-                        dateAdded: Date.now() - 259200000,
-                        size: 0
-                    },
-                    {
-                        id: 'demo-4',
-                        title: 'Rock Anthem',
-                        artist: 'The Thunder',
-                        album: 'Revolution',
-                        duration: 198,
-                        source: 'demo',
-                        favorite: false,
-                        dateAdded: Date.now() - 345600000,
-                        size: 0
-                    },
-                    {
-                        id: 'demo-5',
-                        title: 'Jazz Evening',
-                        artist: 'Smooth Trio',
-                        album: 'Late Night Jazz',
-                        duration: 312,
-                        source: 'demo',
-                        favorite: false,
-                        dateAdded: Date.now() - 432000000,
-                        size: 0
-                    }
-                ];
-                
-                return Promise.all(demoTracks.map(function(track) {
-                    return db.saveTrack(track);
-                }));
-            }
-            return Promise.resolve();
+    // ДЕМО-ТРЕКИ
+    var DEMO_TRACKS = [
+        {
+            id: 'demo-1',
+            title: 'Midnight Dreams',
+            artist: 'Electronic Beats',
+            album: 'Night Sessions',
+            duration: 214,
+            source: 'demo',
+            favorite: false,
+            dateAdded: Date.now() - 86400000,
+            size: 0
+        },
+        {
+            id: 'demo-2',
+            title: 'Urban Flow',
+            artist: 'City Lights',
+            album: 'Metropolis',
+            duration: 183,
+            source: 'demo',
+            favorite: false,
+            dateAdded: Date.now() - 172800000,
+            size: 0
+        },
+        {
+            id: 'demo-3',
+            title: 'Chill Session',
+            artist: 'Lofi Study',
+            album: 'Relaxation',
+            duration: 245,
+            source: 'demo',
+            favorite: false,
+            dateAdded: Date.now() - 259200000,
+            size: 0
+        },
+        {
+            id: 'demo-4',
+            title: 'Rock Anthem',
+            artist: 'The Thunder',
+            album: 'Revolution',
+            duration: 198,
+            source: 'demo',
+            favorite: false,
+            dateAdded: Date.now() - 345600000,
+            size: 0
+        },
+        {
+            id: 'demo-5',
+            title: 'Jazz Evening',
+            artist: 'Smooth Trio',
+            album: 'Late Night Jazz',
+            duration: 312,
+            source: 'demo',
+            favorite: false,
+            dateAdded: Date.now() - 432000000,
+            size: 0
+        },
+        {
+            id: 'demo-6',
+            title: 'Acoustic Sunrise',
+            artist: 'Folk Guitarist',
+            album: 'Morning Melodies',
+            duration: 267,
+            source: 'demo',
+            favorite: false,
+            dateAdded: Date.now() - 518400000,
+            size: 0
+        },
+        {
+            id: 'demo-7',
+            title: 'Deep House',
+            artist: 'Club Mixer',
+            album: 'Nightlife',
+            duration: 356,
+            source: 'demo',
+            favorite: false,
+            dateAdded: Date.now() - 604800000,
+            size: 0
+        },
+        {
+            id: 'demo-8',
+            title: 'Smooth R&B',
+            artist: 'Soul Singer',
+            album: 'Urban Soul',
+            duration: 234,
+            source: 'demo',
+            favorite: false,
+            dateAdded: Date.now() - 691200000,
+            size: 0
+        }
+    ];
+    
+    // ДЕМО-ПЛЕЙЛИСТЫ
+    var DEMO_PLAYLISTS = [
+        {
+            id: 'playlist-1',
+            name: 'Любимые треки',
+            description: 'Моя любимая музыка',
+            tracks: ['demo-1', 'demo-3', 'demo-5'],
+            createdAt: Date.now()
+        },
+        {
+            id: 'playlist-2',
+            name: 'Для работы',
+            description: 'Фоновая музыка',
+            tracks: ['demo-2', 'demo-4', 'demo-6'],
+            createdAt: Date.now()
+        }
+    ];
+    
+    function initDemoData() {
+        return db.open().then(function() {
+            return db.getAllTracks().then(function(tracks) {
+                if (tracks.length === 0) {
+                    console.log('📀 Создание демо-треков...');
+                    var savePromises = DEMO_TRACKS.map(function(track) {
+                        return db.saveTrack(track);
+                    });
+                    return Promise.all(savePromises);
+                }
+                return Promise.resolve();
+            });
+        }).then(function() {
+            return db.getAllPlaylists().then(function(playlists) {
+                if (playlists.length === 0) {
+                    console.log('📁 Создание демо-плейлистов...');
+                    var savePromises = DEMO_PLAYLISTS.map(function(playlist) {
+                        return db.savePlaylist(playlist);
+                    });
+                    return Promise.all(savePromises);
+                }
+                return Promise.resolve();
+            });
         });
     }
     
@@ -92,10 +157,10 @@
             
             function waitForUI() {
                 if (window.ui && typeof window.ui.init === 'function') {
-                    // Сначала открываем БД и создаем демо-треки
-                    db.open()
-                        .then(createDemoTracks)
+                    // Инициализация БД и создание демо-данных
+                    initDemoData()
                         .then(function() {
+                            console.log('✅ Демо-данные загружены');
                             if (window.player) player.init();
                             
                             if (window.player) {
@@ -136,6 +201,7 @@
                         .then(function() { 
                             s.ready = true; 
                             document.body.classList.add('loaded'); 
+                            console.log('🎵 MusicHub готов к работе!');
                         })
                         .catch(function(e) { 
                             console.error('Init error:', e);
