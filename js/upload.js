@@ -27,16 +27,29 @@
                 
                 var reader = new FileReader();
                 reader.onload = function(e) {
+                    // Извлекаем метаданные из ID3 если возможно
+                    var title = file.name.replace(/\.[^/.]+$/, '');
+                    var artist = 'Unknown Artist';
+                    
+                    // Простой парсинг имени файла
+                    if (title.includes('-')) {
+                        var parts = title.split('-');
+                        artist = parts[0].trim();
+                        title = parts[1].trim();
+                    }
+                    
                     var track = {
                         id: Date.now() + '-' + Math.random().toString(36).substr(2, 9),
-                        title: file.name.replace(/\.[^/.]+$/, ''),
-                        artist: 'Unknown Artist',
-                        duration: 180,
+                        title: title,
+                        artist: artist,
+                        album: '',
+                        duration: 180, // будет обновлено при загрузке в плеер
                         source: 'local',
                         favorite: false,
                         dateAdded: Date.now(),
                         size: file.size,
-                        file: e.target.result
+                        file: e.target.result,
+                        fileName: file.name
                     };
                     
                     db.saveTrack(track).then(function() {
