@@ -42,18 +42,9 @@
             container.innerHTML = '<div class="album-grid">' + 
                 Array(6).fill().map(function() { return `
                     <div class="album-card">
-                        <div class="skeleton skeleton-cover" style="width:100%;aspect-ratio:1;"></div>
+                        <div class="skeleton skeleton-cover" style="width:100%;aspect-ratio:1;border-radius:8px;"></div>
                         <div class="skeleton skeleton-text" style="width:80%;margin-top:8px;"></div>
                         <div class="skeleton skeleton-text" style="width:60%;margin-top:4px;"></div>
-                    </div>
-                `; }).join('') + '</div>';
-        } else if (type === 'playlists') {
-            container.innerHTML = '<div class="playlist-grid">' + 
-                Array(6).fill().map(function() { return `
-                    <div class="playlist-card">
-                        <div class="skeleton skeleton-cover" style="width:100%;aspect-ratio:1;border-radius:12px;"></div>
-                        <div class="skeleton skeleton-text" style="width:80%;margin-top:8px;"></div>
-                        <div class="skeleton skeleton-text" style="width:50%;margin-top:4px;"></div>
                     </div>
                 `; }).join('') + '</div>';
         }
@@ -294,38 +285,12 @@
                 '<h1 class="page-title">Добро пожаловать!</h1>' +
                 '<p class="page-subtitle">Ваша персональная музыкальная платформа</p>' +
             '</div>' +
-            
             '<div class="quick-actions">' +
                 '<div class="action-card" data-action="upload">📤 Загрузить</div>' +
                 '<div class="action-card" data-action="library">📚 Библиотека</div>' +
                 '<div class="action-card" data-action="search">🔍 Поиск</div>' +
                 '<div class="action-card" data-action="playlists">📋 Плейлисты</div>' +
             '</div>' +
-            
-            '<div class="section">' +
-                '<div class="section-header">' +
-                    '<h2 class="section-title">Ваши плейлисты</h2>' +
-                    '<span class="section-link" data-action="playlists">Все →</span>' +
-                '</div>' +
-                '<div id="homePlaylistsGrid" class="playlist-grid"></div>' +
-            '</div>' +
-            
-            '<div class="section">' +
-                '<div class="section-header">' +
-                    '<h2 class="section-title">Альбомы</h2>' +
-                    '<span class="section-link" data-action="library">Все →</span>' +
-                '</div>' +
-                '<div id="homeAlbumsGrid" class="album-grid"></div>' +
-            '</div>' +
-            
-            '<div class="section">' +
-                '<div class="section-header">' +
-                    '<h2 class="section-title">Популярные артисты</h2>' +
-                    '<span class="section-link" data-action="library">Все →</span>' +
-                '</div>' +
-                '<div id="homeArtistsGrid" class="artist-grid"></div>' +
-            '</div>' +
-            
             '<div class="section">' +
                 '<div class="section-header">' +
                     '<h2 class="section-title">Недавно добавленные</h2>' +
@@ -335,44 +300,6 @@
             '</div>' +
         '</div>';
         
-        // Плейлисты (заглушки)
-        var playlistsGrid = document.getElementById('homePlaylistsGrid');
-        if (playlistsGrid) {
-            playlistsGrid.innerHTML = [
-                '<div class="playlist-card"><div class="playlist-card-cover">🎵</div><div class="playlist-card-name">Любимые треки</div><div class="playlist-card-count">0 треков</div></div>',
-                '<div class="playlist-card"><div class="playlist-card-cover">🎸</div><div class="playlist-card-name">Рок классика</div><div class="playlist-card-count">0 треков</div></div>',
-                '<div class="playlist-card"><div class="playlist-card-cover">🎹</div><div class="playlist-card-name">Джаз вечер</div><div class="playlist-card-count">0 треков</div></div>',
-                '<div class="playlist-card"><div class="playlist-card-cover">⚡</div><div class="playlist-card-name">Электроника</div><div class="playlist-card-count">0 треков</div></div>'
-            ].join('');
-            
-            playlistsGrid.querySelectorAll('.playlist-card').forEach(function(card) {
-                card.addEventListener('click', function() { s.go('playlists'); });
-            });
-        }
-        
-        // Альбомы (заглушки)
-        var albumsGrid = document.getElementById('homeAlbumsGrid');
-        if (albumsGrid) {
-            albumsGrid.innerHTML = [
-                '<div class="album-card"><div class="album-card-cover">💿</div><div class="album-card-name">Ночные огни</div><div class="album-card-artist">Электронный артист</div></div>',
-                '<div class="album-card"><div class="album-card-cover">💿</div><div class="album-card-name">Утренний бриз</div><div class="album-card-artist">Джазовый музыкант</div></div>',
-                '<div class="album-card"><div class="album-card-cover">💿</div><div class="album-card-name">Рок волна</div><div class="album-card-artist">Рок группа</div></div>',
-                '<div class="album-card"><div class="album-card-cover">💿</div><div class="album-card-name">Классика</div><div class="album-card-artist">Симфонический оркестр</div></div>'
-            ].join('');
-        }
-        
-        // Артисты (заглушки)
-        var artistsGrid = document.getElementById('homeArtistsGrid');
-        if (artistsGrid) {
-            artistsGrid.innerHTML = [
-                '<div class="artist-card"><div class="artist-card-avatar">🎤</div><div class="artist-card-name">The Weeknd</div><div class="artist-card-info">Популярный артист</div></div>',
-                '<div class="artist-card"><div class="artist-card-avatar">🎤</div><div class="artist-card-name">Daft Punk</div><div class="artist-card-info">Электронная музыка</div></div>',
-                '<div class="artist-card"><div class="artist-card-avatar">🎤</div><div class="artist-card-name">Billie Eilish</div><div class="artist-card-info">Поп-музыка</div></div>',
-                '<div class="artist-card"><div class="artist-card-avatar">🎤</div><div class="artist-card-name">Queen</div><div class="artist-card-info">Рок легенды</div></div>'
-            ].join('');
-        }
-        
-        // Клики по карточкам
         document.querySelectorAll('.action-card, .section-link').forEach(function(el) {
             el.addEventListener('click', function() {
                 var action = this.dataset.action;
@@ -380,7 +307,6 @@
             });
         });
         
-        // Недавние треки
         var rd = document.getElementById('recentTracksContainer');
         if (rd && window.library) {
             s.showSkeleton(rd, 'tracks');
@@ -403,14 +329,14 @@
     };
     
     // ========================================
-    // LIBRARY PAGE
+    // LIBRARY PAGE - С СОРТИРОВКОЙ И ФИЛЬТРАЦИЕЙ
     // ========================================
     
     UIManager.prototype.libPage = function() {
         var s = this;
         var c = document.getElementById('content');
         
-        c.innerHTML = '<div class="page"><div class="page-header"><h1 class="page-title">Библиотека</h1><p class="page-subtitle">Вся ваша музыка в одном месте</p></div><div class="tabs" id="libTabs"><button class="tab active" data-tab="tracks">🎵 Треки</button><button class="tab" data-tab="artists">🎤 Артисты</button><button class="tab" data-tab="albums">💿 Альбомы</button><button class="tab" data-tab="favorites">❤️ Избранное</button></div><div id="libraryContent"></div></div>';
+        c.innerHTML = '<div class="page"><div class="page-header"><h1 class="page-title">Библиотека</h1><p class="page-subtitle">Вся ваша музыка в одном месте</p><div class="library-actions"><button class="btn btn-secondary btn-sm" id="findDupBtn">🔍 Найти дубликаты</button><button class="btn btn-danger btn-sm" id="remDupBtn">🗑️ Удалить дубликаты</button></div></div><div class="tabs" id="libTabs"><button class="tab active" data-tab="tracks">🎵 Треки</button><button class="tab" data-tab="artists">🎤 Артисты</button><button class="tab" data-tab="albums">💿 Альбомы</button><button class="tab" data-tab="favorites">❤️ Избранное</button></div><div class="library-filters"><select id="sortFilter" class="form-input" style="width:auto;"><option value="dateAdded">📅 По дате</option><option value="title">🔤 По названию</option><option value="artist">👤 По артисту</option></select><select id="sourceFilter" class="form-input" style="width:auto;"><option value="all">📁 Все источники</option><option value="local">💾 Локальные</option></select></div><div id="libraryContent"></div></div>';
         
         document.getElementById('libTabs').addEventListener('click', function(e) {
             var el = e.target.closest ? e.target.closest('.tab') : null;
@@ -421,6 +347,32 @@
             s.loadLib();
         });
         
+        var sortFilter = document.getElementById('sortFilter');
+        var sourceFilter = document.getElementById('sourceFilter');
+        if (sortFilter) sortFilter.addEventListener('change', function() { s.loadLib(); });
+        if (sourceFilter) sourceFilter.addEventListener('change', function() { s.loadLib(); });
+        
+        var findBtn = document.getElementById('findDupBtn');
+        var remBtn = document.getElementById('remDupBtn');
+        if (findBtn && window.library) {
+            findBtn.addEventListener('click', function() {
+                library.getDuplicates().then(function(d) {
+                    s.notify(d.length ? '🔍 Найдено ' + d.length + ' дубликатов' : '✨ Дубликатов не найдено', 'info');
+                });
+            });
+        }
+        if (remBtn && window.library) {
+            remBtn.addEventListener('click', function() {
+                s.confirm('Удалить дубликаты?', 'Это удалит повторяющиеся треки из библиотеки.', function() {
+                    library.removeDuplicates().then(function(r) {
+                        s.notify('🗑️ Удалено ' + r.length + ' дубликатов', 'success');
+                        s.loadLib();
+                        s.loadStats();
+                    });
+                });
+            });
+        }
+        
         return this.loadLib();
     };
     
@@ -428,6 +380,9 @@
         var s = this;
         var ct = document.getElementById('libraryContent');
         if (!ct) return Promise.resolve();
+        
+        var sortBy = document.getElementById('sortFilter') ? document.getElementById('sortFilter').value : 'dateAdded';
+        var source = document.getElementById('sourceFilter') ? document.getElementById('sourceFilter').value : 'all';
         
         if (this.tab === 'tracks') s.showSkeleton(ct, 'tracks');
         else if (this.tab === 'artists') s.showSkeleton(ct, 'artists');
@@ -438,13 +393,17 @@
         
         if (this.tab === 'tracks') {
             if (!window.library) return Promise.resolve();
-            pr = library.getTracks({ sort: 'dateAdded' }).then(function(t) {
-                if (!t || t.length === 0) {
+            pr = library.getTracks({ sort: sortBy }).then(function(tracks) {
+                var filtered = tracks;
+                if (source !== 'all') {
+                    filtered = tracks.filter(function(t) { return t.source === source; });
+                }
+                if (!filtered || filtered.length === 0) {
                     ct.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🎵</div><p>Нет треков</p><span>Загрузите музыку, чтобы начать</span><button class="btn btn-primary mt-4" onclick="ui.go(\'upload\')">Загрузить</button></div>';
                     return;
                 }
                 var h = '<div class="track-list">';
-                for (var i = 0; i < t.length; i++) h += s.trackRow(t[i], i);
+                for (var i = 0; i < filtered.length; i++) h += s.trackRow(filtered[i], i);
                 h += '</div>';
                 ct.innerHTML = h;
                 s.bindRows(ct);
@@ -535,7 +494,7 @@
                 c.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🔍</div><p>Ничего не найдено</p><span>Попробуйте другой запрос</span></div>';
                 return;
             }
-            var h = '<div class="track-list"><div class="search-stats" style="padding:10px;color:var(--text-secondary);">Найдено ' + r.length + ' треков</div>';
+            var h = '<div class="track-list"><div style="padding:10px;color:#7a7a7a;">Найдено ' + r.length + ' треков</div>';
             for (var i = 0; i < r.length; i++) h += s.trackRow(r[i], i);
             h += '</div>';
             c.innerHTML = h;
@@ -690,7 +649,7 @@
     };
     
     // ========================================
-    // BIND ROWS
+    // BIND ROWS - С УДАЛЕНИЕМ ТРЕКОВ
     // ========================================
     
     UIManager.prototype.bindRows = function(c) {
@@ -727,6 +686,77 @@
                         } catch(e) {}
                     });
                 }
+                
+                // КОНТЕКСТНОЕ МЕНЮ (ПРАВЫЙ КЛИК) ДЛЯ УДАЛЕНИЯ
+                row.addEventListener('contextmenu', function(e) {
+                    e.preventDefault();
+                    var trackData = row.getAttribute('data-track');
+                    if (!trackData) return;
+                    
+                    try {
+                        var track = JSON.parse(trackData);
+                        var isFav = window.favorites ? window.favorites.isFavorite(track.id) : false;
+                        
+                        // Создаём кастомное меню
+                        var menu = document.createElement('div');
+                        menu.className = 'context-menu';
+                        menu.style.cssText = 'position:fixed;background:#1a1a24;border-radius:8px;padding:8px;box-shadow:0 4px 12px rgba(0,0,0,0.3);z-index:9999;min-width:180px;';
+                        menu.innerHTML = `
+                            <div class="context-item" data-action="play" style="padding:10px 16px;cursor:pointer;border-radius:6px;">▶ Воспроизвести</div>
+                            <div class="context-item" data-action="queue" style="padding:10px 16px;cursor:pointer;border-radius:6px;">📋 Добавить в очередь</div>
+                            <div class="context-item" data-action="favorite" style="padding:10px 16px;cursor:pointer;border-radius:6px;">${isFav ? '❤️ Удалить из избранного' : '🤍 Добавить в избранное'}</div>
+                            <div class="context-item" data-action="playlist" style="padding:10px 16px;cursor:pointer;border-radius:6px;">📁 Добавить в плейлист</div>
+                            <div class="context-divider" style="height:1px;background:#333;margin:8px 0;"></div>
+                            <div class="context-item" data-action="delete" style="padding:10px 16px;cursor:pointer;border-radius:6px;color:#dc3545;">🗑️ Удалить</div>
+                        `;
+                        
+                        document.body.appendChild(menu);
+                        menu.style.left = e.clientX + 'px';
+                        menu.style.top = e.clientY + 'px';
+                        
+                        // Проверка выхода за границы
+                        var rect = menu.getBoundingClientRect();
+                        if (rect.right > window.innerWidth) menu.style.left = (window.innerWidth - rect.width - 10) + 'px';
+                        if (rect.bottom > window.innerHeight) menu.style.top = (window.innerHeight - rect.height - 10) + 'px';
+                        
+                        var closeMenu = function() { if (menu && menu.parentNode) menu.parentNode.removeChild(menu); };
+                        document.addEventListener('click', closeMenu, { once: true });
+                        
+                        menu.querySelectorAll('.context-item').forEach(function(item) {
+                            item.addEventListener('mouseenter', function() { this.style.background = '#2a2a3a'; });
+                            item.addEventListener('mouseleave', function() { this.style.background = 'transparent'; });
+                            item.addEventListener('click', function(e) {
+                                e.stopPropagation();
+                                var action = this.dataset.action;
+                                if (action === 'play' && window.player) player.play(track);
+                                if (action === 'queue' && window.queueManager) {
+                                    queueManager.add(track);
+                                    s.notify('Добавлено в очередь', 'success');
+                                }
+                                if (action === 'favorite' && window.favorites) {
+                                    window.favorites.toggle(track);
+                                    var newIsFav = window.favorites.isFavorite(track.id);
+                                    if (favSpan) favSpan.textContent = newIsFav ? '❤️' : '🤍';
+                                    s.notify(newIsFav ? 'Добавлено в избранное' : 'Удалено из избранного', 'success');
+                                }
+                                if (action === 'playlist') s.showAddPl(track.id);
+                                if (action === 'delete') {
+                                    s.confirm('Удалить трек', 'Удалить "' + track.title + '"?', function() {
+                                        if (window.db) {
+                                            db.deleteTrack(track.id).then(function() {
+                                                if (window.favorites) window.favorites.remove(track.id);
+                                                s.loadLib();
+                                                s.loadStats();
+                                                s.notify('Трек удален', 'success');
+                                            });
+                                        }
+                                    });
+                                }
+                                closeMenu();
+                            });
+                        });
+                    } catch(e) {}
+                });
             })(rows[i]);
         }
     };
@@ -814,11 +844,48 @@
         });
     };
     
+    UIManager.prototype.showAddPl = function(tid) {
+        var s = this;
+        var o = document.getElementById('modal-overlay');
+        var ct = document.getElementById('modal-content');
+        
+        if (!window.library) return;
+        library.getPlaylists().then(function(pl) {
+            var h = '<div class="modal-header"><h3 class="modal-title">📁 Добавить в плейлист</h3><span class="modal-close">×</span></div>';
+            if (!pl || pl.length === 0) {
+                h += '<p class="text-muted">Нет плейлистов. Создайте первый.</p>';
+            } else {
+                for (var i = 0; i < pl.length; i++) {
+                    h += '<div class="playlist-option" data-id="' + pl[i].id + '">📁 ' + s.esc(pl[i].name) + ' (' + (pl[i].tracks ? pl[i].tracks.length : 0) + ' треков)</div>';
+                }
+            }
+            h += '<button class="btn btn-secondary btn-sm mt-4" id="newPlBtn">+ Создать плейлист</button>';
+            ct.innerHTML = h;
+            o.classList.remove('hidden');
+            
+            var close = function() { o.classList.add('hidden'); };
+            ct.querySelector('.modal-close').addEventListener('click', close);
+            o.addEventListener('click', function(e) { if (e.target === o) close(); });
+            
+            ct.querySelectorAll('.playlist-option').forEach(function(opt) {
+                opt.addEventListener('click', function() {
+                    library.addToPlaylist(opt.getAttribute('data-id'), tid).then(function() {
+                        s.notify('Добавлено в плейлист', 'success');
+                        close();
+                    });
+                });
+            });
+            
+            var newBtn = document.getElementById('newPlBtn');
+            if (newBtn) newBtn.addEventListener('click', function() { close(); s.showCreatePl(); });
+        });
+    };
+    
     UIManager.prototype.confirm = function(title, message, callback) {
         var o = document.getElementById('modal-overlay');
         var ct = document.getElementById('modal-content');
         
-        ct.innerHTML = '<div class="modal-header"><h3 class="modal-title">⚠️ ' + title + '</h3><span class="modal-close">×</span></div><p class="mb-4" style="color:var(--text-secondary);">' + message + '</p><div style="display:flex;gap:8px;"><button class="btn btn-secondary" id="cancelBtn">Отмена</button><button class="btn btn-danger" id="confirmBtn">Подтвердить</button></div>';
+        ct.innerHTML = '<div class="modal-header"><h3 class="modal-title">⚠️ ' + title + '</h3><span class="modal-close">×</span></div><p class="mb-4" style="color:#7a7a7a;">' + message + '</p><div style="display:flex;gap:8px;"><button class="btn btn-secondary" id="cancelBtn">Отмена</button><button class="btn btn-danger" id="confirmBtn">Подтвердить</button></div>';
         o.classList.remove('hidden');
         
         var close = function() { o.classList.add('hidden'); };
@@ -895,43 +962,6 @@
                 else s.notify('Нет играющего трека', 'info');
             });
         }
-    };
-    
-    UIManager.prototype.showAddPl = function(tid) {
-        var s = this;
-        var o = document.getElementById('modal-overlay');
-        var ct = document.getElementById('modal-content');
-        
-        if (!window.library) return;
-        library.getPlaylists().then(function(pl) {
-            var h = '<div class="modal-header"><h3 class="modal-title">📁 Добавить в плейлист</h3><span class="modal-close">×</span></div>';
-            if (!pl || pl.length === 0) {
-                h += '<p class="text-muted">Нет плейлистов. Создайте первый.</p>';
-            } else {
-                for (var i = 0; i < pl.length; i++) {
-                    h += '<div class="playlist-option" data-id="' + pl[i].id + '">📁 ' + s.esc(pl[i].name) + ' (' + (pl[i].tracks ? pl[i].tracks.length : 0) + ' треков)</div>';
-                }
-            }
-            h += '<button class="btn btn-secondary btn-sm mt-4" id="newPlBtn">+ Создать плейлист</button>';
-            ct.innerHTML = h;
-            o.classList.remove('hidden');
-            
-            var close = function() { o.classList.add('hidden'); };
-            ct.querySelector('.modal-close').addEventListener('click', close);
-            o.addEventListener('click', function(e) { if (e.target === o) close(); });
-            
-            ct.querySelectorAll('.playlist-option').forEach(function(opt) {
-                opt.addEventListener('click', function() {
-                    library.addToPlaylist(opt.getAttribute('data-id'), tid).then(function() {
-                        s.notify('Добавлено в плейлист', 'success');
-                        close();
-                    });
-                });
-            });
-            
-            var newBtn = document.getElementById('newPlBtn');
-            if (newBtn) newBtn.addEventListener('click', function() { close(); s.showCreatePl(); });
-        });
     };
     
     UIManager.prototype.updatePlayerUI = function() {
